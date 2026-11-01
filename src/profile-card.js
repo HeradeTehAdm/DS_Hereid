@@ -39,6 +39,21 @@ const THEMES = {
   "Тень": { file: "shadow.jpg", colors: ["#080b14", "#343c54", "#a9b6d4"], label: "ТИХАЯ ТЕНЬ", motif: "shadow" },
   "Тыква": { file: "pumpkin.jpg", colors: ["#1a0830", "#b8470f", "#ffb347"], label: "ТЫКВЕННАЯ НОЧЬ", motif: "pumpkin" },
   "Кладбище": { file: "graveyard.jpg", colors: ["#04100f", "#1f7a5a", "#8dffb8"], label: "ПРОКЛЯТОЕ КЛАДБИЩЕ", motif: "graveyard" },
+  "Рассвет": { file: "dawn.jpg", colors: ["#16303a", "#4a8a8a", "#ffcfa6"], label: "ТУМАННЫЙ РАССВЕТ", motif: "dawn" },
+  "Озеро": { file: "lake.jpg", colors: ["#10203a", "#3a5f8a", "#ffb4a0"], label: "ТИХОЕ ОЗЕРО", motif: "lake" },
+  "Дюны": { file: "dunes.jpg", colors: ["#3a2410", "#c8873a", "#ffd28a"], label: "ЗОЛОТЫЕ ДЮНЫ", motif: "dunes" },
+  "Сакура": { file: "sakura.jpg", colors: ["#2a1030", "#d86a9a", "#ffc4dc"], label: "САКУРА", motif: "sakura" },
+  "Гроза": { file: "storm.jpg", colors: ["#0a1020", "#3a4a8a", "#bcd4ff"], label: "ГРОЗОВОЙ ФРОНТ", motif: "storm" },
+  "Осень": { file: "autumn.jpg", colors: ["#2a1408", "#c8501a", "#ffb347"], label: "ОСЕННИЙ ЛЕС", motif: "autumn" },
+  "Мегаполис": { file: "megacity.jpg", colors: ["#080a1e", "#2a3a8a", "#ff5ec8"], label: "НОЧНОЙ МЕГАПОЛИС", motif: "megacity" },
+  "Орбита": { file: "orbit.jpg", colors: ["#02030c", "#1a4a9a", "#ffb060"], label: "ОРБИТАЛЬНЫЙ РАССВЕТ", motif: "orbit" },
+  "Вулкан": { file: "volcano.jpg", colors: ["#12060a", "#a82a0a", "#ff7a2a"], label: "ГНЕВ ВУЛКАНА", motif: "volcano" },
+  "Замок": { file: "skycastle.jpg", colors: ["#10224a", "#4a7ac8", "#ffe0a0"], label: "НЕБЕСНЫЙ ЗАМОК", motif: "skycastle" },
+  "Храм": { file: "moontemple.jpg", colors: ["#0a1230", "#2a4a9a", "#ffcf8a"], label: "ЛУННЫЙ ХРАМ", motif: "moontemple" },
+  "Феникс": { file: "phoenix.jpg", colors: ["#1a0508", "#c8300a", "#ffb030"], label: "КРЫЛЬЯ ФЕНИКСА", motif: "phoenix" },
+  "Разрыв": { file: "rift.jpg", colors: ["#04010f", "#6a2aff", "#7af0ff"], label: "РАЗРЫВ РЕАЛЬНОСТИ", motif: "rift" },
+  "Фрактал": { file: "fractal.jpg", colors: ["#03011a", "#5a1a9a", "#c9a5ff"], label: "ФРАКТАЛЬНАЯ БЕЗДНА", motif: "fractal" },
+  "Древо": { file: "worldtree.jpg", colors: ["#040820", "#2a8a9a", "#ffe08a"], label: "ДРЕВО МИРОВ", motif: "worldtree" },
 };
 const DEFAULT_THEME = { file: "classic.jpg", colors: ["#101827", "#334b83", "#8ca9ff"], label: "КЛАССИЧЕСКИЙ БАННЕР", motif: "classic" };
 

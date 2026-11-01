@@ -114,6 +114,22 @@ const CATALOG = Object.freeze([
   // Хэллоуин
   { id: "banner_pumpkin", name: "Баннер «Тыквенная ночь»", category: "Баннеры", description: "Полная луна, светящиеся тыквы и старый особняк.", price: 3000, type: "banner", value: "Тыква" },
   { id: "banner_graveyard", name: "Баннер «Проклятое кладбище»", category: "Баннеры", description: "Призраки, болотные огни и густой туман.", price: 3600, type: "banner", value: "Кладбище" },
+  // Новые баннеры по редкостям
+  { id: "banner_dawn", name: "Баннер «Туманный рассвет»", category: "Баннеры", description: "Мягкий свет и холмы в утренней дымке.", price: 350, type: "banner", value: "Рассвет" },
+  { id: "banner_lake", name: "Баннер «Тихое озеро»", category: "Баннеры", description: "Закат отражается в неподвижной воде.", price: 400, type: "banner", value: "Озеро" },
+  { id: "banner_dunes", name: "Баннер «Золотые дюны»", category: "Баннеры", description: "Тёплый песок и бескрайний горизонт.", price: 450, type: "banner", value: "Дюны" },
+  { id: "banner_sakura", name: "Баннер «Сакура»", category: "Баннеры", description: "Лепестки на ветру под розовой луной.", price: 800, type: "banner", value: "Сакура" },
+  { id: "banner_storm", name: "Баннер «Грозовой фронт»", category: "Баннеры", description: "Молнии над штормовым морем.", price: 1000, type: "banner", value: "Гроза" },
+  { id: "banner_autumn", name: "Баннер «Осенний лес»", category: "Баннеры", description: "Золотой свет и падающая листва.", price: 1400, type: "banner", value: "Осень" },
+  { id: "banner_megacity", name: "Баннер «Ночной мегаполис»", category: "Баннеры", description: "Дождь, неон и бесконечные небоскрёбы.", price: 2000, type: "banner", value: "Мегаполис" },
+  { id: "banner_orbit", name: "Баннер «Орбитальный рассвет»", category: "Баннеры", description: "Солнце встаёт над краем планеты.", price: 2600, type: "banner", value: "Орбита" },
+  { id: "banner_volcano", name: "Баннер «Гнев вулкана»", category: "Баннеры", description: "Лава, пепел и раскалённое небо.", price: 3300, type: "banner", value: "Вулкан" },
+  { id: "banner_skycastle", name: "Баннер «Небесный замок»", category: "Баннеры", description: "Парящие острова над морем облаков.", price: 5000, type: "banner", value: "Замок" },
+  { id: "banner_moontemple", name: "Баннер «Лунный храм»", category: "Баннеры", description: "Врата над водой под огромной луной.", price: 6500, type: "banner", value: "Храм" },
+  { id: "banner_phoenix", name: "Баннер «Крылья феникса»", category: "Баннеры", description: "Огненное перо, рождённое из пепла.", price: 8500, type: "banner", value: "Феникс" },
+  { id: "banner_rift", name: "Баннер «Разрыв реальности»", category: "Баннеры", description: "Портал между мирами, которых не должно быть.", price: 12000, type: "banner", value: "Разрыв" },
+  { id: "banner_fractal", name: "Баннер «Фрактальная бездна»", category: "Баннеры", description: "Бесконечность, которая смотрит в ответ.", price: 16000, type: "banner", value: "Фрактал" },
+  { id: "banner_worldtree", name: "Баннер «Древо миров»", category: "Баннеры", description: "Корни в бездне, ветви среди звёзд.", price: 22000, type: "banner", value: "Древо" },
 
   // Цвета профиля
   { id: "color_blue", name: "Цвет «Синий»", category: "Цвета", description: "Синий цвет карточки профиля.", price: 250, type: "color", value: "5865F2" },

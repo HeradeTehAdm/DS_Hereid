@@ -14,6 +14,21 @@ const BANNER_STYLE = {
   Тень: { emoji: "🌑", label: "Тень" },
   Тыква: { emoji: "🎃", label: "Тыква" },
   Кладбище: { emoji: "👻", label: "Кладбище" },
+  Рассвет: { emoji: "🌄", label: "Рассвет" },
+  Озеро: { emoji: "🏞️", label: "Озеро" },
+  Дюны: { emoji: "🏜️", label: "Дюны" },
+  Сакура: { emoji: "🌸", label: "Сакура" },
+  Гроза: { emoji: "⛈️", label: "Гроза" },
+  Осень: { emoji: "🍂", label: "Осень" },
+  Мегаполис: { emoji: "🌃", label: "Мегаполис" },
+  Орбита: { emoji: "🛰️", label: "Орбита" },
+  Вулкан: { emoji: "🌋", label: "Вулкан" },
+  Замок: { emoji: "🏰", label: "Замок" },
+  Храм: { emoji: "⛩️", label: "Храм" },
+  Феникс: { emoji: "🔥", label: "Феникс" },
+  Разрыв: { emoji: "🌀", label: "Разрыв" },
+  Фрактал: { emoji: "🔮", label: "Фрактал" },
+  Древо: { emoji: "🌳", label: "Древо" },
 };
 
 module.exports = {

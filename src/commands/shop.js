@@ -46,6 +46,21 @@ const ITEM_STYLE = {
   banner_gold: { emoji: "👑" },
   banner_pumpkin: { emoji: "🎃" },
   banner_graveyard: { emoji: "👻" },
+  banner_dawn: { emoji: "🌄" },
+  banner_lake: { emoji: "🏞️" },
+  banner_dunes: { emoji: "🏜️" },
+  banner_sakura: { emoji: "🌸" },
+  banner_storm: { emoji: "⛈️" },
+  banner_autumn: { emoji: "🍂" },
+  banner_megacity: { emoji: "🌃" },
+  banner_orbit: { emoji: "🛰️" },
+  banner_volcano: { emoji: "🌋" },
+  banner_skycastle: { emoji: "🏰" },
+  banner_moontemple: { emoji: "⛩️" },
+  banner_phoenix: { emoji: "🔥" },
+  banner_rift: { emoji: "🌀" },
+  banner_fractal: { emoji: "🔮" },
+  banner_worldtree: { emoji: "🌳" },
 };
 function sortCatalogItems(items) {
   const categoryOrder = ["Титулы", "Значки", "Баннеры", "Цвета"];
