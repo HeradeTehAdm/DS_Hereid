@@ -130,6 +130,22 @@ const CATALOG = Object.freeze([
   { id: "banner_rift", name: "Баннер «Разрыв реальности»", category: "Баннеры", description: "Портал между мирами, которых не должно быть.", price: 12000, type: "banner", value: "Разрыв" },
   { id: "banner_fractal", name: "Баннер «Фрактальная бездна»", category: "Баннеры", description: "Бесконечность, которая смотрит в ответ.", price: 16000, type: "banner", value: "Фрактал" },
   { id: "banner_worldtree", name: "Баннер «Древо миров»", category: "Баннеры", description: "Корни в бездне, ветви среди звёзд.", price: 22000, type: "banner", value: "Древо" },
+  // Ещё баннеры по редкостям
+  { id: "banner_lavender", name: "Баннер «Лавандовые поля»", category: "Баннеры", description: "Фиолетовые ряды под тёплым закатом.", price: 380, type: "banner", value: "Лаванда" },
+  { id: "banner_camp", name: "Баннер «Ночной лагерь»", category: "Баннеры", description: "Костёр, палатка и Млечный Путь над головой.", price: 420, type: "banner", value: "Лагерь" },
+  { id: "banner_harbor", name: "Баннер «Тихая гавань»", category: "Баннеры", description: "Паруса и чайки в лучах утреннего солнца.", price: 480, type: "banner", value: "Гавань" },
+  { id: "banner_village", name: "Баннер «Снежная деревня»", category: "Баннеры", description: "Тёплые окна и тихий снегопад.", price: 950, type: "banner", value: "Деревня" },
+  { id: "banner_tropic", name: "Баннер «Тропический закат»", category: "Баннеры", description: "Пальмы и солнечная дорожка по воде.", price: 1150, type: "banner", value: "Тропики" },
+  { id: "banner_bamboo", name: "Баннер «Бамбуковая роща»", category: "Баннеры", description: "Зелёный полумрак и лучи света.", price: 1300, type: "banner", value: "Бамбук" },
+  { id: "banner_aurora", name: "Баннер «Полярная аврора»", category: "Баннеры", description: "Сияние над ночным озером.", price: 2400, type: "banner", value: "Аврора" },
+  { id: "banner_ghostship", name: "Баннер «Корабль-призрак»", category: "Баннеры", description: "Рваные паруса в лунном тумане.", price: 3100, type: "banner", value: "Призрак" },
+  { id: "banner_steam", name: "Баннер «Паровая эра»", category: "Баннеры", description: "Медные шестерни и жар котлов.", price: 3800, type: "banner", value: "Пар" },
+  { id: "banner_ruins", name: "Баннер «Затерянный храм»", category: "Баннеры", description: "Светящиеся руны в сердце джунглей.", price: 5500, type: "banner", value: "Руины" },
+  { id: "banner_dragoneye", name: "Баннер «Око дракона»", category: "Баннеры", description: "Взгляд, от которого плавится сталь.", price: 7500, type: "banner", value: "Дракон" },
+  { id: "banner_bifrost", name: "Баннер «Радужный мост»", category: "Баннеры", description: "Путь между мирами через звёзды.", price: 9500, type: "banner", value: "Мост" },
+  { id: "banner_blackhole", name: "Баннер «Горизонт событий»", category: "Баннеры", description: "Свет, который не смог убежать.", price: 14000, type: "banner", value: "Дыра" },
+  { id: "banner_gem", name: "Баннер «Сердце мироздания»", category: "Баннеры", description: "Кристалл, в котором рождается свет.", price: 20000, type: "banner", value: "Кристалл" },
+  { id: "banner_clock", name: "Баннер «Часы вечности»", category: "Баннеры", description: "Последняя минута перед полуночью времён.", price: 26000, type: "banner", value: "Часы" },
 
   // Цвета профиля
   { id: "color_blue", name: "Цвет «Синий»", category: "Цвета", description: "Синий цвет карточки профиля.", price: 250, type: "color", value: "5865F2" },

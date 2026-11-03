@@ -54,6 +54,21 @@ const THEMES = {
   "Разрыв": { file: "rift.jpg", colors: ["#04010f", "#6a2aff", "#7af0ff"], label: "РАЗРЫВ РЕАЛЬНОСТИ", motif: "rift" },
   "Фрактал": { file: "fractal.jpg", colors: ["#03011a", "#5a1a9a", "#c9a5ff"], label: "ФРАКТАЛЬНАЯ БЕЗДНА", motif: "fractal" },
   "Древо": { file: "worldtree.jpg", colors: ["#040820", "#2a8a9a", "#ffe08a"], label: "ДРЕВО МИРОВ", motif: "worldtree" },
+  "Лаванда": { file: "lavender.jpg", colors: ["#2a1a4a", "#7a5aa0", "#ffd0a8"], label: "ЛАВАНДОВЫЕ ПОЛЯ", motif: "lavender" },
+  "Лагерь": { file: "camp.jpg", colors: ["#06102a", "#1a2a5a", "#ffb86a"], label: "НОЧНОЙ ЛАГЕРЬ", motif: "camp" },
+  "Гавань": { file: "harbor.jpg", colors: ["#1c4a6a", "#6ab0c8", "#ffe0c8"], label: "ТИХАЯ ГАВАНЬ", motif: "harbor" },
+  "Деревня": { file: "village.jpg", colors: ["#0e1a3c", "#3a4a88", "#ffc468"], label: "СНЕЖНАЯ ДЕРЕВНЯ", motif: "village" },
+  "Тропики": { file: "tropic.jpg", colors: ["#2a1a5a", "#c0407a", "#ffa060"], label: "ТРОПИЧЕСКИЙ ЗАКАТ", motif: "tropic" },
+  "Бамбук": { file: "bamboo.jpg", colors: ["#1e5a3c", "#5a9a72", "#b8f0b8"], label: "БАМБУКОВАЯ РОЩА", motif: "bamboo" },
+  "Аврора": { file: "aurora.jpg", colors: ["#02060f", "#0a2a3a", "#4fffb0"], label: "ПОЛЯРНАЯ АВРОРА", motif: "aurora" },
+  "Призрак": { file: "ghostship.jpg", colors: ["#040a14", "#2a4a5a", "#7affe0"], label: "КОРАБЛЬ-ПРИЗРАК", motif: "ghostship" },
+  "Пар": { file: "steam.jpg", colors: ["#1a0e08", "#7a4a1e", "#ffa050"], label: "ПАРОВАЯ ЭРА", motif: "steam" },
+  "Руины": { file: "ruins.jpg", colors: ["#0a2a2a", "#2a6a58", "#7affe6"], label: "ЗАТЕРЯННЫЙ ХРАМ", motif: "ruins" },
+  "Дракон": { file: "dragoneye.jpg", colors: ["#0c0406", "#a82a0a", "#ffa030"], label: "ОКО ДРАКОНА", motif: "dragoneye" },
+  "Мост": { file: "bifrost.jpg", colors: ["#050820", "#2a1a78", "#ffe040"], label: "РАДУЖНЫЙ МОСТ", motif: "bifrost" },
+  "Дыра": { file: "blackhole.jpg", colors: ["#02030a", "#c02a10", "#ffb050"], label: "ГОРИЗОНТ СОБЫТИЙ", motif: "blackhole" },
+  "Кристалл": { file: "gem.jpg", colors: ["#04060f", "#3a2aa8", "#9af0ff"], label: "СЕРДЦЕ МИРОЗДАНИЯ", motif: "gem" },
+  "Часы": { file: "clock.jpg", colors: ["#06031a", "#6a3ae0", "#ffe08a"], label: "ЧАСЫ ВЕЧНОСТИ", motif: "clock" },
 };
 const DEFAULT_THEME = { file: "classic.jpg", colors: ["#101827", "#334b83", "#8ca9ff"], label: "КЛАССИЧЕСКИЙ БАННЕР", motif: "classic" };
 
