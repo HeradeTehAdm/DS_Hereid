@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { loadSave, writeSave } from '../save.js';
 
 const TILE = 16;
 const ROOM = { x: 64, y: 32, width: 512, height: 288 };
@@ -7,17 +8,17 @@ const PLAYER_SIZE = 12;
 export class RoomScene extends Phaser.Scene {
   constructor() { super('RoomScene'); }
 
-  init(data) { this.encounterResolved = Boolean(data && data.encounterResolved); }
+  init(data) { this.encounterResolved = Boolean(data && data.encounterResolved); this.saved = data && data.resume ? loadSave() : null; }
 
   create() {
-    this.encounter = { x: 470, y: 235, active: !this.encounterResolved };
+    this.encounter = { x: 470, y: 235, active: !(this.encounterResolved || (this.saved && this.saved.encounterResolved)) };
     this.add.rectangle(320, 180, 640, 360, 0x080610);
     this.add.rectangle(320, 180, ROOM.width, ROOM.height, 0x171126)
       .setStrokeStyle(3, 0x5b3b79);
     this.drawFloor();
     this.drawExit();
 
-    this.player = this.add.rectangle(320, 250, PLAYER_SIZE, PLAYER_SIZE, 0xf4efff)
+    this.player = this.add.rectangle(this.saved ? this.saved.x : 320, this.saved ? this.saved.y : 250, PLAYER_SIZE, PLAYER_SIZE, 0xf4efff)
       .setStrokeStyle(2, 0x9b72d1);
     this.obstacles = [
       new Phaser.Geom.Rectangle(ROOM.x + 94, ROOM.y + 92, 56, 20),
@@ -44,6 +45,7 @@ export class RoomScene extends Phaser.Scene {
       'Дверь запечатана незнакомым символом.',
       'Похоже, сначала нужно понять, как устроена эта Бездна.'
     ];
+    this.activeDialogue = this.dialogue;
     this.dialogueIndex = 0;
     this.dialogueOpen = true;
 
@@ -77,6 +79,8 @@ export class RoomScene extends Phaser.Scene {
       backgroundColor: '#211431', padding: { x: 7, y: 4 }
     }).setOrigin(0.5).setVisible(false);
 
+    this.saveTimer = this.time.addEvent({ delay: 1500, loop: true, callback: () => this.saveProgress() });
+    this.events.once('shutdown', () => this.saveProgress());
     this.input.keyboard.on('keydown-ENTER', () => this.advanceDialogue());
     this.input.keyboard.on('keydown-SPACE', () => this.advanceDialogue());
   }
@@ -110,6 +114,11 @@ export class RoomScene extends Phaser.Scene {
     this.add.text(320, 58, 'ЗАПЕЧАТАННЫЙ ПРОХОД', {
       fontFamily: 'monospace', fontSize: '8px', color: '#7e6a93'
     }).setOrigin(0.5);
+  }
+
+  saveProgress() {
+    if (!this.player) return;
+    writeSave({ floor: 1, room: 'first-room', x: this.player.x, y: this.player.y, encounterResolved: !this.encounter.active });
   }
 
   advanceDialogue() {
@@ -168,7 +177,7 @@ export class RoomScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
       if (nearGuide) this.startDialogue(this.dialogue);
       else if (nearDoor) this.startDialogue(this.doorDialogue);
-      else if (nearEnemy && this.encounter.active) this.scene.start('BattleScene', { returnScene: 'RoomScene' });
+      else if (nearEnemy && this.encounter.active) { this.saveProgress(); this.scene.start('BattleScene', { returnScene: 'RoomScene' }); }
     }
   }
 }
