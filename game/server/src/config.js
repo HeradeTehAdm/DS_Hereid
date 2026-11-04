@@ -1,3 +1,4 @@
+const path = require("node:path");
 const VALID_LOG_LEVELS = new Set(["error", "warn", "info", "debug"]);
 
 function readConfig(env = process.env) {
@@ -5,6 +6,7 @@ function readConfig(env = process.env) {
   const port = Number(env.PORT || 3100);
   const nodeEnv = (env.NODE_ENV || "development").trim();
   const logLevel = (env.LOG_LEVEL || "info").trim().toLowerCase();
+  const databasePath = path.resolve(env.DATABASE_PATH || path.join(__dirname, "../data/heradetale.sqlite"));
 
   if (!host) throw new Error("HOST must not be empty.");
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -14,7 +16,7 @@ function readConfig(env = process.env) {
     throw new Error(`Invalid LOG_LEVEL. Use: ${[...VALID_LOG_LEVELS].join(", ")}.`);
   }
 
-  return Object.freeze({ host, port, nodeEnv, logLevel });
+  return Object.freeze({ host, port, nodeEnv, logLevel, databasePath });
 }
 
 module.exports = { readConfig };
