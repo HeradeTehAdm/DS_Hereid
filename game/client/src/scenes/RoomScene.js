@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { loadSave, writeSave } from '../save.js';
+import { getFloor } from '../content/world.js';
 
 const TILE = 16;
 const ROOM = { x: 64, y: 32, width: 512, height: 288 };
@@ -69,7 +70,7 @@ export class RoomScene extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '10px', color: '#c4b5fd'
     }).setOrigin(0.5);
 
-    this.add.text(320, 48, 'ЭТАЖ 1 • ПОСЛЕДНЕЕ ПАДЕНИЕ', {
+    this.add.text(320, 48, 'ЭТАЖ 1 • ' + getFloor(1).title.toLocaleUpperCase('ru-RU'), {
       fontFamily: 'monospace', fontSize: '12px', color: '#8b7b9f'
     }).setOrigin(0.5);
     this.add.text(320, 345, 'WASD / ← ↑ → ↓ — движение   E — взаимодействие', {
