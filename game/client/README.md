@@ -24,6 +24,6 @@ npm run build
 - Browser-local save/load for room position and encounter state.
 - First turn-based battle: timing attack, ACT, healing ITEM, MERCY, and dodge phase.
 
-Keyboard: WASD or arrows; E interacts; Enter/Space advances dialogue and confirms battle actions.
+Keyboard: WASD or arrows; E interacts; Enter/Space advances dialogue and confirms battle actions. Touch controls are available for movement, interaction, and battle dodging/actions.
 
-All graphics are temporary geometric placeholders. Original sprites, tilemaps, animation, audio, touch controls, and server-backed saves remain planned.
+All graphics are temporary geometric placeholders. Original sprites, tilemaps, animation, audio, and server-backed saves remain planned.
