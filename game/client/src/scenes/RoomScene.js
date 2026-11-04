@@ -7,7 +7,10 @@ const PLAYER_SIZE = 12;
 export class RoomScene extends Phaser.Scene {
   constructor() { super('RoomScene'); }
 
+  init(data) { this.encounterResolved = Boolean(data && data.encounterResolved); }
+
   create() {
+    this.encounter = { x: 470, y: 235, active: !this.encounterResolved };
     this.add.rectangle(320, 180, 640, 360, 0x080610);
     this.add.rectangle(320, 180, ROOM.width, ROOM.height, 0x171126)
       .setStrokeStyle(3, 0x5b3b79);
@@ -22,13 +25,13 @@ export class RoomScene extends Phaser.Scene {
       new Phaser.Geom.Rectangle(ROOM.x + 198, ROOM.y + 202, 42, 18)
     ];
     this.drawObstacles();
-    this.enemyMarker = this.add.container(this.encounter.x, this.encounter.y);
+    this.enemyMarker = this.add.container(this.encounter.x, this.encounter.y).setVisible(this.encounter.active);
     this.enemyMarker.add([
       this.add.ellipse(0, 0, 26, 24, 0x7c3aed),
       this.add.circle(-5, -2, 2, 0xf5f3ff),
       this.add.circle(5, -2, 2, 0xf5f3ff)
     ]);
-    this.add.text(this.encounter.x, this.encounter.y + 22, '???', { fontFamily: 'monospace', fontSize: '9px', color: '#a78bfa' }).setOrigin(0.5);
+    this.enemyLabel = this.add.text(this.encounter.x, this.encounter.y + 22, '???', { fontFamily: 'monospace', fontSize: '9px', color: '#a78bfa' }).setOrigin(0.5).setVisible(this.encounter.active);
 
     this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,ENTER,SPACE,E');
     this.dialogue = [
@@ -43,7 +46,6 @@ export class RoomScene extends Phaser.Scene {
     ];
     this.dialogueIndex = 0;
     this.dialogueOpen = true;
-    this.encounter = { x: 470, y: 235, active: true };
 
     this.dialogueBox = this.add.rectangle(320, 300, 500, 70, 0x090610, 0.96)
       .setStrokeStyle(2, 0xa78bfa);
