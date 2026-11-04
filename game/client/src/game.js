@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { IntroScene } from './scenes/IntroScene.js';
 import { RoomScene } from './scenes/RoomScene.js';
+import { BattleScene } from './scenes/BattleScene.js';
 
 export function createGameConfig() {
   return {
@@ -18,6 +19,6 @@ export function createGameConfig() {
       height: 360
     },
     render: { roundPixels: true },
-    scene: [BootScene, MenuScene, IntroScene, RoomScene]
+    scene: [BootScene, MenuScene, IntroScene, RoomScene, BattleScene]
   };
 }
