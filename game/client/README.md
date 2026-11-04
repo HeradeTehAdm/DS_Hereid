@@ -18,10 +18,12 @@ npm run build
 
 ## Current prototype
 
-- 640x360 pixel-art-oriented canvas with responsive FIT scaling.
-- Title menu and intro sequence.
-- First room placeholder with grid, obstacles, sealed exit, controllable player, Искрик dialogue, and an optional encounter.
-- First turn-based battle: FIGHT timing, ACT to calm the enemy, ITEM healing, MERCY, and a short dodge phase with moving projectiles.
-- Keyboard: WASD or arrow keys; ENTER/SPACE advances dialogue.
+- Responsive 640x360 pixel-art-oriented canvas.
+- Title menu with new game and continue.
+- Intro sequence and first room with movement, obstacle collisions, sealed door, and NPC dialogue.
+- Browser-local save/load for room position and encounter state.
+- First turn-based battle: timing attack, ACT, healing ITEM, MERCY, and dodge phase.
 
-The current shapes and colors are temporary placeholders, not final production pixel-art assets. Replace them with original sprites, tiles, portraits, animation, and audio as those assets are created.
+Keyboard: WASD or arrows; E interacts; Enter/Space advances dialogue and confirms battle actions.
+
+All graphics are temporary geometric placeholders. Original sprites, tilemaps, animation, audio, touch controls, and server-backed saves remain planned.
