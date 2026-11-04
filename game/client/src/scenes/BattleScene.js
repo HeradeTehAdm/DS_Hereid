@@ -22,12 +22,26 @@ export class BattleScene extends Phaser.Scene {
     this.statusText = this.add.text(54, 270, 'Тень смотрит на тебя, не понимая, кто ты.', { fontFamily: 'monospace', fontSize: '13px', color: '#e5dcef', wordWrap: { width: 530 } });
     this.hpText = this.add.text(54, 294, 'HP 20 / 20', { fontFamily: 'monospace', fontSize: '12px', color: '#fca5a5' });
     this.menuLabels = ['FIGHT', 'ACT', 'ITEM', 'MERCY'];
-    this.menuObjects = this.menuLabels.map((label, i) => this.add.text(92 + i * 150, 330, (i === 0 ? '▶ ' : '  ') + label, { fontFamily: 'monospace', fontSize: '15px', color: i === 0 ? '#facc15' : '#e5dcef' }).setOrigin(0.5));
+    this.menuObjects = this.menuLabels.map((label, i) => this.add.text(92 + i * 150, 330, (i === 0 ? '▶ ' : '  ') + label, { fontFamily: 'monospace', fontSize: '15px', color: i === 0 ? '#facc15' : '#e5dcef' }).setOrigin(0.5).setInteractive().on('pointerdown', () => { this.menuIndex = i; this.changeMenu(0); this.confirm(); }));
+    this.createTouchControls();
+    this.input.on('pointerdown', () => { if (this.phase === 'fight') this.resolveFight(); });
     this.input.keyboard.on('keydown-ENTER', () => this.confirm());
     this.input.keyboard.on('keydown-SPACE', () => this.confirm());
     this.input.keyboard.on('keydown-LEFT', () => this.changeMenu(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.changeMenu(1));
     this.input.keyboard.on('keydown-ESC', () => this.scene.start(this.returnScene, { encounterResolved: false, resume: true }));
+  }
+
+  createTouchControls() {
+    const controls = [['▲', 548, 265, 'up'], ['▼', 548, 325, 'down'], ['◀', 490, 295, 'left'], ['▶', 606, 295, 'right']];
+    this.touch = { up: false, down: false, left: false, right: false };
+    for (const [label, x, y, key] of controls) {
+      const control = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '17px', color: '#f4efff', backgroundColor: '#302044', padding: { x: 10, y: 7 } }).setOrigin(0.5).setAlpha(0.7).setDepth(20).setInteractive();
+      const release = () => { this.touch[key] = false; };
+      control.on('pointerdown', () => { this.touch[key] = true; });
+      control.on('pointerup', release).on('pointerout', release);
+      this.input.on('pointerup', release);
+    }
   }
 
   changeMenu(dir) {
@@ -52,6 +66,15 @@ export class BattleScene extends Phaser.Scene {
     this.meter = this.add.rectangle(320, 198, 220, 8, 0x312244).setStrokeStyle(1, 0xc4b5fd);
     this.target = this.add.rectangle(320, 198, 30, 12, 0xfacc15);
     this.cursor = this.add.rectangle(210, 198, 4, 18, 0xf4efff); this.cursorDirection = 1;
+  }
+
+  resolveFight() {
+    if (this.phase !== 'fight' || !this.cursor) return;
+    const damage = Math.max(1, Math.round(12 * (1 - Math.abs(this.cursor.x - 320) / 110)));
+    this.enemyHp = Math.max(0, this.enemyHp - damage); this.enemyHpText.setText('HP ' + this.enemyHp + ' / 24');
+    this.statusText.setText('Удар наносит ' + damage + ' урона.');
+    this.meter.destroy(); this.target.destroy(); this.cursor.destroy(); this.cursor = null;
+    this.phase = 'fight-result';
   }
 
   act() {
@@ -90,19 +113,15 @@ export class BattleScene extends Phaser.Scene {
       this.cursor.x += this.cursorDirection * 230 * delta / 1000;
       if (this.cursor.x > 425 || this.cursor.x < 215) this.cursorDirection *= -1;
       if (Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
-        const damage = Math.max(1, Math.round(12 * (1 - Math.abs(this.cursor.x - 320) / 110)));
-        this.enemyHp = Math.max(0, this.enemyHp - damage); this.enemyHpText.setText('HP ' + this.enemyHp + ' / 24');
-        this.statusText.setText('Удар наносит ' + damage + ' урона.');
-        this.meter.destroy(); this.target.destroy(); this.cursor.destroy(); this.cursor = null;
-        this.phase = 'fight-result';
+        this.resolveFight();
       }
     }
     if (this.phase !== 'enemy-turn') return;
     const speed = 130 * delta / 1000;
-    if (this.keys.LEFT.isDown || this.keys.A.isDown) this.heartX -= speed;
-    if (this.keys.RIGHT.isDown || this.keys.D.isDown) this.heartX += speed;
-    if (this.keys.UP.isDown || this.keys.W.isDown) this.heartY -= speed;
-    if (this.keys.DOWN.isDown || this.keys.S.isDown) this.heartY += speed;
+    if (this.keys.LEFT.isDown || this.keys.A.isDown || this.touch.left) this.heartX -= speed;
+    if (this.keys.RIGHT.isDown || this.keys.D.isDown || this.touch.right) this.heartX += speed;
+    if (this.keys.UP.isDown || this.keys.W.isDown || this.touch.up) this.heartY -= speed;
+    if (this.keys.DOWN.isDown || this.keys.S.isDown || this.touch.down) this.heartY += speed;
     this.heartX = Phaser.Math.Clamp(this.heartX, BOX.x - BOX.width / 2 + 10, BOX.x + BOX.width / 2 - 10);
     this.heartY = Phaser.Math.Clamp(this.heartY, BOX.y - BOX.height / 2 + 10, BOX.y + BOX.height / 2 - 10);
     this.heart.setPosition(this.heartX, this.heartY);
