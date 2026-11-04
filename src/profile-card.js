@@ -212,7 +212,40 @@ function formatTenure(ms) {
   return `${hours} ч ${minutes % 60} мин`;
 }
 
-async function renderProfileCard({ user, displayName, title, titleRarity, badge, banner, level, xp, balance, percent, inventoryCount, joinedAt }) {
+// ── Цвета и градиенты профиля ──
+// Значение предмета: "FF5E62" (цвет) или "FF5E62-FF9966" (градиент из 2–6 цветов).
+function parseColorStops(value) {
+  if (!value) return [];
+  return String(value).split("-")
+    .map((part) => part.trim().replace(/^#/, ""))
+    .filter((part) => /^[0-9a-fA-F]{6}$/.test(part))
+    .slice(0, 6)
+    .map((part) => `#${part.toLowerCase()}`);
+}
+function hexToRgb(hex) {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex([r, g, b]) {
+  return `#${[r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("")}`;
+}
+function mixHex(a, b, t) {
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return rgbToHex(A.map((v, i) => v + (B[i] - v) * t));
+}
+function luminance(hex) {
+  const [r, g, b] = hexToRgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+// Самый яркий цвет набора, подтянутый к светлому, чтобы подписи читались на тёмной карточке.
+function readableAccent(stops) {
+  let best = stops[0];
+  for (const stop of stops) if (luminance(stop) > luminance(best)) best = stop;
+  const lum = luminance(best);
+  return lum < 0.5 ? mixHex(best, "#ffffff", Math.min(0.6, (0.5 - lum) * 1.4)) : best;
+}
+
+async function renderProfileCard({ user, displayName, title, titleRarity, badge, banner, colorValue, level, xp, balance, percent, inventoryCount, joinedAt }) {
   ensureFonts();
   const width = 1200;
   const height = 700;
@@ -221,7 +254,20 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
   const theme = THEMES[banner?.value] || DEFAULT_THEME;
-  const [c1, c2, accent] = theme.colors;
+  let [c1, c2, accent] = theme.colors;
+  // Купленный цвет/градиент перекрашивает акценты карточки и подкрашивает баннер
+  const customStops = parseColorStops(colorValue);
+  let fillStops = [c2, accent];
+  if (customStops.length) {
+    fillStops = customStops.length > 1 ? customStops : [mixHex(customStops[0], "#000000", 0.4), customStops[0]];
+    accent = readableAccent(customStops);
+    c2 = fillStops[0];
+  }
+  const stopGradient = (x0, y0, x1, y1) => {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    fillStops.forEach((c, k) => g.addColorStop(fillStops.length === 1 ? 0 : k / (fillStops.length - 1), c));
+    return g;
+  };
 
   // ── Фон карточки ──
   ctx.save();
@@ -252,6 +298,21 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   } else {
     drawBannerArt(ctx, theme, width, bannerHeight);
   }
+  // подкраска баннера выбранным цветом (мягкий свет + лёгкая заливка)
+  if (customStops.length) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, width, bannerHeight);
+    ctx.clip();
+    ctx.fillStyle = stopGradient(0, 0, width, 0);
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(0, 0, width, bannerHeight);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 0.14;
+    ctx.fillRect(0, 0, width, bannerHeight);
+    ctx.restore();
+  }
   // плавный переход баннера в тело карточки
   const fade = ctx.createLinearGradient(0, bannerHeight - 46, 0, bannerHeight);
   fade.addColorStop(0, "rgba(12,19,38,0)");
@@ -259,11 +320,15 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   ctx.fillStyle = fade;
   ctx.fillRect(0, bannerHeight - 46, width, 46);
   // тонкая линия акцентного цвета под баннером
-  const edge = ctx.createLinearGradient(0, 0, width, 0);
-  edge.addColorStop(0, accent + "00");
-  edge.addColorStop(0.5, accent + "cc");
-  edge.addColorStop(1, accent + "00");
-  ctx.fillStyle = edge;
+  if (customStops.length > 1) {
+    ctx.fillStyle = stopGradient(0, 0, width, 0);
+  } else {
+    const edge = ctx.createLinearGradient(0, 0, width, 0);
+    edge.addColorStop(0, accent + "00");
+    edge.addColorStop(0.5, accent + "cc");
+    edge.addColorStop(1, accent + "00");
+    ctx.fillStyle = edge;
+  }
   ctx.fillRect(0, bannerHeight - 1, width, 2);
 
   // ── Надписи на баннере ──
@@ -341,7 +406,7 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   ctx.save();
   ctx.shadowColor = accent;
   ctx.shadowBlur = 26;
-  ctx.strokeStyle = accent;
+  ctx.strokeStyle = customStops.length > 1 ? stopGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize) : accent;
   ctx.lineWidth = 6;
   ctx.beginPath();
   ctx.arc(acx, acy, avatarSize / 2 + 4, 0, Math.PI * 2);
@@ -385,9 +450,7 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   roundedRect(ctx, 268, 384, 850, 14, 7);
   ctx.fill();
   const progressWidth = Math.max(14, 850 * pct / 100);
-  const progressGradient = ctx.createLinearGradient(268, 0, 1118, 0);
-  progressGradient.addColorStop(0, c2);
-  progressGradient.addColorStop(1, accent);
+  const progressGradient = stopGradient(268, 0, 1118, 0);
   ctx.save();
   ctx.shadowColor = accent;
   ctx.shadowBlur = 12;
@@ -524,10 +587,7 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   ctx.restore();
 
   // ── Акцентная полоса ──
-  const bar = ctx.createLinearGradient(58, 0, 1142, 0);
-  bar.addColorStop(0, c2);
-  bar.addColorStop(1, accent);
-  ctx.fillStyle = bar;
+  ctx.fillStyle = stopGradient(58, 0, 1142, 0);
   roundedRect(ctx, 58, 676, 1084, 4, 2);
   ctx.fill();
 

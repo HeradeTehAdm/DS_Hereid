@@ -87,6 +87,7 @@ module.exports = {
         user, displayName, title, titleRarity: custom.title ? getItemRarity(custom.title) : null, badge, banner: custom.banner,
         level, xp, balance, percent, inventoryCount: inventory.length,
         joinedAt: member?.joinedTimestamp || null,
+        colorValue: custom.color?.value || null,
       });
     } catch (error) {
       console.error("[profile] Не удалось создать графическую карточку:", error);

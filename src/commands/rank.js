@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const db = require("../database");
+const { getCustomProfile } = require("../economy");
 const { RANKS, ensureMember, snapshot, rankIndexFor } = require("../rank-system");
 
 const RANK_EMOJI = {
@@ -70,7 +71,12 @@ module.exports = {
     const rank = RANKS[currentIndex] || RANKS[0];
     const next = RANKS[Math.min(currentIndex + 1, RANKS.length - 1)];
     const hasNext = currentIndex < RANKS.length - 1;
-    const color = 0x5865f2;
+    let color = 0x5865f2;
+    try {
+      const custom = getCustomProfile(interaction.guildId, user.id);
+      const parsed = custom.color ? Number.parseInt(String(custom.color.value), 16) : NaN;
+      if (Number.isFinite(parsed)) color = parsed;
+    } catch { /* цвет профиля не обязателен */ }
 
     const requirements = hasNext ? [
       progressLine("На сервере, дней", stats.days, next.days),
