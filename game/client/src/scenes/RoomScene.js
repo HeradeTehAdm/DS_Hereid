@@ -35,6 +35,8 @@ export class RoomScene extends Phaser.Scene {
     this.enemyLabel = this.add.text(this.encounter.x, this.encounter.y + 22, '???', { fontFamily: 'monospace', fontSize: '9px', color: '#a78bfa' }).setOrigin(0.5).setVisible(this.encounter.active);
 
     this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,ENTER,SPACE,E');
+    this.touch = { up: false, down: false, left: false, right: false, interact: false };
+    this.createTouchControls();
     this.dialogue = [
       '...Ты наконец очнулся.',
       'Не бойся. Меня зовут Искрик.',
@@ -83,6 +85,24 @@ export class RoomScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.saveProgress());
     this.input.keyboard.on('keydown-ENTER', () => this.advanceDialogue());
     this.input.keyboard.on('keydown-SPACE', () => this.advanceDialogue());
+  }
+
+  createTouchControls() {
+    const make = (x, y, label, key) => {
+      const button = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '18px', color: '#f4efff', backgroundColor: '#302044', padding: { x: 12, y: 8 } })
+        .setOrigin(0.5).setAlpha(0.72).setScrollFactor(0).setDepth(20).setInteractive();
+      button.on('pointerdown', () => { this.touch[key] = true; });
+      const release = () => { this.touch[key] = false; };
+      button.on('pointerup', release);
+      button.on('pointerout', release);
+      this.input.on('pointerup', release);
+      return button;
+    };
+    make(548, 270, '▲', 'up');
+    make(548, 326, '▼', 'down');
+    make(492, 298, '◀', 'left');
+    make(604, 298, '▶', 'right');
+    make(82, 298, 'E', 'interact');
   }
 
   drawFloor() {
@@ -155,10 +175,10 @@ export class RoomScene extends Phaser.Scene {
     const speed = 110 * (delta / 1000);
     let dx = 0;
     let dy = 0;
-    if (this.keys.A.isDown || this.keys.LEFT.isDown) dx -= speed;
-    if (this.keys.D.isDown || this.keys.RIGHT.isDown) dx += speed;
-    if (this.keys.W.isDown || this.keys.UP.isDown) dy -= speed;
-    if (this.keys.S.isDown || this.keys.DOWN.isDown) dy += speed;
+    if (this.keys.A.isDown || this.keys.LEFT.isDown || this.touch.left) dx -= speed;
+    if (this.keys.D.isDown || this.keys.RIGHT.isDown || this.touch.right) dx += speed;
+    if (this.keys.W.isDown || this.keys.UP.isDown || this.touch.up) dy -= speed;
+    if (this.keys.S.isDown || this.keys.DOWN.isDown || this.touch.down) dy += speed;
     if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
 
     const nextX = Phaser.Math.Clamp(this.player.x + dx, ROOM.x + 10, ROOM.x + ROOM.width - 10);
@@ -174,7 +194,8 @@ export class RoomScene extends Phaser.Scene {
     else if (nearDoor) this.prompt.setPosition(320, 76).setText('E — осмотреть дверь');
     else if (nearEnemy) this.prompt.setPosition(this.encounter.x, this.encounter.y - 28).setText('E — вступить в бой');
 
-    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E) || this.touch.interact) {
+      this.touch.interact = false;
       if (nearGuide) this.startDialogue(this.dialogue);
       else if (nearDoor) this.startDialogue(this.doorDialogue);
       else if (nearEnemy && this.encounter.active) { this.saveProgress(); this.scene.start('BattleScene', { returnScene: 'RoomScene' }); }
