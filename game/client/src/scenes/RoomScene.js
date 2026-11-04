@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 const TILE = 16;
 const ROOM = { x: 64, y: 32, width: 512, height: 288 };
+const PLAYER_SIZE = 12;
 
 export class RoomScene extends Phaser.Scene {
   constructor() { super('RoomScene'); }
@@ -12,23 +13,37 @@ export class RoomScene extends Phaser.Scene {
       .setStrokeStyle(3, 0x5b3b79);
     this.drawFloor();
     this.drawExit();
-    this.player = this.add.rectangle(320, 250, 12, 12, 0xf4efff)
+
+    this.player = this.add.rectangle(320, 250, PLAYER_SIZE, PLAYER_SIZE, 0xf4efff)
       .setStrokeStyle(2, 0x9b72d1);
-    this.physics?.world?.setBounds(ROOM.x + 8, ROOM.y + 8, ROOM.width - 16, ROOM.height - 16);
-    this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,ENTER,SPACE');
+    this.obstacles = [
+      new Phaser.Geom.Rectangle(ROOM.x + 94, ROOM.y + 92, 56, 20),
+      new Phaser.Geom.Rectangle(ROOM.x + 350, ROOM.y + 146, 70, 20),
+      new Phaser.Geom.Rectangle(ROOM.x + 198, ROOM.y + 202, 42, 18)
+    ];
+    this.drawObstacles();
+
+    this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,ENTER,SPACE,E');
     this.dialogue = [
       '...Ты наконец очнулся.',
       'Не бойся. Меня зовут Искрик.',
       'Это первый этаж Бездны. Выход пока закрыт.',
-      'Подойди ко мне и нажми ENTER.'
+      'Осмотрись. Если захочешь поговорить — подойди и нажми E.'
+    ];
+    this.doorDialogue = [
+      'Дверь запечатана незнакомым символом.',
+      'Похоже, сначала нужно понять, как устроена эта Бездна.'
     ];
     this.dialogueIndex = 0;
+    this.dialogueOpen = true;
+
     this.dialogueBox = this.add.rectangle(320, 300, 500, 70, 0x090610, 0.96)
       .setStrokeStyle(2, 0xa78bfa);
     this.dialogueText = this.add.text(90, 275, this.dialogue[0], {
       fontFamily: 'monospace', fontSize: '15px', color: '#f4efff',
       wordWrap: { width: 455 }
     });
+
     this.guide = this.add.container(320, 112);
     this.guide.add([
       this.add.ellipse(0, 0, 36, 42, 0xc4b5fd),
@@ -39,13 +54,19 @@ export class RoomScene extends Phaser.Scene {
     this.add.text(320, 145, 'ИСКРИК', {
       fontFamily: 'monospace', fontSize: '10px', color: '#c4b5fd'
     }).setOrigin(0.5);
+
     this.add.text(320, 48, 'ЭТАЖ 1 • ПОСЛЕДНЕЕ ПАДЕНИЕ', {
       fontFamily: 'monospace', fontSize: '12px', color: '#8b7b9f'
     }).setOrigin(0.5);
-    this.add.text(320, 345, 'WASD / ← ↑ → ↓ — движение   ENTER — диалог', {
+    this.add.text(320, 345, 'WASD / ← ↑ → ↓ — движение   E — взаимодействие', {
       fontFamily: 'monospace', fontSize: '10px', color: '#6f6680'
     }).setOrigin(0.5);
-    this.dialogueOpen = true;
+
+    this.prompt = this.add.text(320, 190, 'E — поговорить', {
+      fontFamily: 'monospace', fontSize: '11px', color: '#f4efff',
+      backgroundColor: '#211431', padding: { x: 7, y: 4 }
+    }).setOrigin(0.5).setVisible(false);
+
     this.input.keyboard.on('keydown-ENTER', () => this.advanceDialogue());
     this.input.keyboard.on('keydown-SPACE', () => this.advanceDialogue());
   }
@@ -64,6 +85,16 @@ export class RoomScene extends Phaser.Scene {
     graphics.fillRect(ROOM.x + ROOM.width - 24, ROOM.y + ROOM.height - 24, 8, 8);
   }
 
+  drawObstacles() {
+    const graphics = this.add.graphics();
+    for (const obstacle of this.obstacles) {
+      graphics.fillStyle(0x39264b, 1);
+      graphics.fillRectShape(obstacle);
+      graphics.lineStyle(1, 0x76528f, 1);
+      graphics.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    }
+  }
+
   drawExit() {
     this.add.rectangle(320, 44, 64, 8, 0x5b3b79);
     this.add.text(320, 58, 'ЗАПЕЧАТАННЫЙ ПРОХОД', {
@@ -74,17 +105,34 @@ export class RoomScene extends Phaser.Scene {
   advanceDialogue() {
     if (!this.dialogueOpen) return;
     this.dialogueIndex += 1;
-    if (this.dialogueIndex >= this.dialogue.length) {
+    if (this.dialogueIndex >= this.activeDialogue.length) {
       this.dialogueOpen = false;
       this.dialogueBox.setVisible(false);
       this.dialogueText.setVisible(false);
       return;
     }
-    this.dialogueText.setText(this.dialogue[this.dialogueIndex]);
+    this.dialogueText.setText(this.activeDialogue[this.dialogueIndex]);
+  }
+
+  startDialogue(lines) {
+    this.activeDialogue = lines;
+    this.dialogueIndex = 0;
+    this.dialogueOpen = true;
+    this.dialogueBox.setVisible(true);
+    this.dialogueText.setVisible(true).setText(lines[0]);
+  }
+
+  collidesAt(x, y) {
+    const playerRect = new Phaser.Geom.Rectangle(
+      x - PLAYER_SIZE / 2, y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE
+    );
+    return this.obstacles.some(obstacle => Phaser.Geom.Intersects.RectangleToRectangle(playerRect, obstacle));
   }
 
   update(_, delta) {
-    if (!this.player || this.dialogueOpen) return;
+    if (!this.player) return;
+    if (this.dialogueOpen) return;
+
     const speed = 110 * (delta / 1000);
     let dx = 0;
     let dy = 0;
@@ -93,14 +141,21 @@ export class RoomScene extends Phaser.Scene {
     if (this.keys.W.isDown || this.keys.UP.isDown) dy -= speed;
     if (this.keys.S.isDown || this.keys.DOWN.isDown) dy += speed;
     if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
-    this.player.x = Phaser.Math.Clamp(this.player.x + dx, ROOM.x + 10, ROOM.x + ROOM.width - 10);
-    this.player.y = Phaser.Math.Clamp(this.player.y + dy, ROOM.y + 10, ROOM.y + ROOM.height - 10);
-    if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.guide.x, this.guide.y) < 42 &&
-        Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) {
-      this.dialogueOpen = true;
-      this.dialogueIndex = 0;
-      this.dialogueBox.setVisible(true);
-      this.dialogueText.setVisible(true).setText(this.dialogue[0]);
+
+    const nextX = Phaser.Math.Clamp(this.player.x + dx, ROOM.x + 10, ROOM.x + ROOM.width - 10);
+    if (!this.collidesAt(nextX, this.player.y)) this.player.x = nextX;
+    const nextY = Phaser.Math.Clamp(this.player.y + dy, ROOM.y + 10, ROOM.y + ROOM.height - 10);
+    if (!this.collidesAt(this.player.x, nextY)) this.player.y = nextY;
+
+    const nearGuide = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.guide.x, this.guide.y) < 42;
+    const nearDoor = this.player.y < ROOM.y + 42 && Math.abs(this.player.x - 320) < 48;
+    this.prompt.setVisible(nearGuide || nearDoor);
+    if (nearGuide) this.prompt.setPosition(this.guide.x, this.guide.y + 38).setText('E — поговорить');
+    else if (nearDoor) this.prompt.setPosition(320, 76).setText('E — осмотреть дверь');
+
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      if (nearGuide) this.startDialogue(this.dialogue);
+      else if (nearDoor) this.startDialogue(this.doorDialogue);
     }
   }
 }
