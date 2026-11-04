@@ -44,7 +44,7 @@ export class BattleScene extends Phaser.Scene {
       else this.mercy();
     } else if (this.phase === 'fight-result' || this.phase === 'act-result') this.enemyTurn();
     else if (this.phase === 'enemy-turn') this.finishTurn();
-    else if (this.phase === 'end') this.scene.start(this.returnScene, { encounterResolved: true });
+    else if (this.phase === 'end') this.scene.start(this.returnScene, { encounterResolved: true, resume: true });
   }
 
   beginFight() {
