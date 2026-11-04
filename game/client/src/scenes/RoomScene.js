@@ -91,7 +91,10 @@ export class RoomScene extends Phaser.Scene {
     const make = (x, y, label, key) => {
       const button = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '18px', color: '#f4efff', backgroundColor: '#302044', padding: { x: 12, y: 8 } })
         .setOrigin(0.5).setAlpha(0.72).setScrollFactor(0).setDepth(20).setInteractive();
-      button.on('pointerdown', () => { this.touch[key] = true; });
+      button.on('pointerdown', () => {
+        if (key === 'interact' && this.dialogueOpen) this.advanceDialogue();
+        else this.touch[key] = true;
+      });
       const release = () => { this.touch[key] = false; };
       button.on('pointerup', release);
       button.on('pointerout', release);
