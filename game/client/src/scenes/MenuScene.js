@@ -10,7 +10,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(width / 2, 82, 'HERADETALE', { fontFamily: 'monospace', fontSize: '38px', color: '#f4efff', stroke: '#32184c', strokeThickness: 5 }).setOrigin(0.5);
     this.add.text(width / 2, 125, 'Б Е З Д Н А', { fontFamily: 'monospace', fontSize: '16px', color: '#a78bfa' }).setOrigin(0.5);
     this.makeButton(width / 2, 205, 'НАЧАТЬ ЗАНОВО', () => { clearSave(); this.scene.start('IntroScene'); });
-    this.makeButton(width / 2, 260, 'ПРОДОЛЖИТЬ', () => this.scene.start('RoomScene'), !save);
+    this.makeButton(width / 2, 260, 'ПРОДОЛЖИТЬ', () => this.scene.start('RoomScene', { resume: true }), !save);
     this.add.text(width / 2, 318, 'ПРОТОТИП • WASD / СТРЕЛКИ • ENTER • E', { fontFamily: 'monospace', fontSize: '10px', color: '#77718b' }).setOrigin(0.5);
   }
   makeButton(x, y, label, callback, disabled = false) {
