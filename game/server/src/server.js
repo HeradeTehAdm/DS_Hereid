@@ -1,14 +1,17 @@
 const http = require("node:http");
 const { WebSocketServer } = require("ws");
 const { readConfig } = require("./config");
+const { openDatabase } = require("./database");
 
 const config = readConfig();
+const database = openDatabase(config.databasePath);
 const server = http.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/health") {
     const body = JSON.stringify({
       ok: true,
       service: "heradetale-game-server",
       environment: config.nodeEnv,
+      storage: "sqlite",
       timestamp: new Date().toISOString(),
     });
     res.writeHead(200, {
@@ -32,19 +35,17 @@ server.on("upgrade", (req, socket, head) => {
     socket.destroy();
     return;
   }
-
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit("connection", ws, req);
-  });
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
 });
 
 wss.on("connection", (ws) => {
-  // Protocol messages and authenticated game sessions are implemented in later stages.
+  // Authenticated session protocol is added in the next implementation stage.
   ws.send(JSON.stringify({ type: "connection.ready", protocolVersion: 1 }));
 });
 
 server.listen(config.port, config.host, () => {
   console.log(`[heradetale] listening on http://${config.host}:${config.port}`);
+  console.log(`[heradetale] save database: ${config.databasePath}`);
 });
 
 let closing = false;
@@ -55,6 +56,7 @@ function shutdown(signal) {
   for (const socket of wss.clients) socket.close(1001, "server_shutdown");
   wss.close();
   server.close((error) => {
+    database.close();
     if (error) {
       console.error("[heradetale] shutdown failed", error);
       process.exitCode = 1;
