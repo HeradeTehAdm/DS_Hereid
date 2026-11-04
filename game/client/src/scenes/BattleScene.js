@@ -4,7 +4,7 @@ const BOX = { x: 190, y: 142, width: 260, height: 112 };
 
 export class BattleScene extends Phaser.Scene {
   constructor() { super('BattleScene'); }
-  init(data) { this.returnScene = data && data.returnScene || 'RoomScene'; }
+  init(data) { this.returnScene = data && data.returnScene || 'RoomScene'; this.encounterResolved = false; }
 
   create() {
     this.enemyHp = 24; this.playerHp = 20; this.maxPlayerHp = 20;
@@ -27,7 +27,7 @@ export class BattleScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-SPACE', () => this.confirm());
     this.input.keyboard.on('keydown-LEFT', () => this.changeMenu(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.changeMenu(1));
-    this.input.keyboard.on('keydown-ESC', () => this.scene.start(this.returnScene));
+    this.input.keyboard.on('keydown-ESC', () => this.scene.start(this.returnScene, { encounterResolved: false, resume: true }));
   }
 
   changeMenu(dir) {
@@ -43,8 +43,7 @@ export class BattleScene extends Phaser.Scene {
       else if (this.menuIndex === 2) this.item();
       else this.mercy();
     } else if (this.phase === 'fight-result' || this.phase === 'act-result') this.enemyTurn();
-    else if (this.phase === 'enemy-turn') this.finishTurn();
-    else if (this.phase === 'end') this.scene.start(this.returnScene, { encounterResolved: true, resume: true });
+    else if (this.phase === 'end') this.scene.start(this.returnScene, { encounterResolved: this.encounterResolved, resume: true });
   }
 
   beginFight() {
@@ -70,12 +69,12 @@ export class BattleScene extends Phaser.Scene {
 
   mercy() {
     if (this.pacify < 2) { this.phase = 'act-result'; this.statusText.setText('Тень ещё не готова успокоиться. Попробуй ACT.'); return; }
-    this.phase = 'end'; this.statusText.setText('Ты отпускаешь Тень. Иногда победа — это не удар.');
+    this.phase = 'end'; this.encounterResolved = true; this.statusText.setText('Ты отпускаешь Тень. Иногда победа — это не удар.');
     this.enemy.setVisible(false); this.enemyName.setText('ПОЩАЖЕНА'); this.box.setVisible(false); this.heart.setVisible(false);
   }
 
   enemyTurn() {
-    if (this.enemyHp <= 0) { this.phase = 'end'; this.statusText.setText('Тень растворяется в воздухе. Ты выстоял.'); this.enemy.setVisible(false); this.box.setVisible(false); this.heart.setVisible(false); return; }
+    if (this.enemyHp <= 0) { this.phase = 'end'; this.encounterResolved = true; this.statusText.setText('Тень растворяется в воздухе. Ты выстоял.'); this.enemy.setVisible(false); this.box.setVisible(false); this.heart.setVisible(false); return; }
     this.phase = 'enemy-turn'; this.statusText.setText('Уклоняйся от сгустков тени! WASD или стрелки.');
     this.box.setVisible(true); this.heart.setVisible(true); this.heartX = 320; this.heartY = 198;
     this.heart.setPosition(this.heartX, this.heartY); this.spawnTimer = 0; this.turnTime = 0;
@@ -122,7 +121,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.turnTime >= 4000 || this.playerHp <= 0) {
       this.bullets.forEach(b => b.destroy()); this.bullets = []; this.box.setVisible(false); this.heart.setVisible(false);
       this.phase = this.playerHp <= 0 ? 'end' : 'menu';
-      this.statusText.setText(this.playerHp <= 0 ? 'Ты теряешь силы. Бой окончен.' : 'Тень отступает на мгновение.');
+      this.encounterResolved = false;
+      this.statusText.setText(this.playerHp <= 0 ? 'Ты теряешь силы. Попробуй ещё раз.' : 'Тень отступает на мгновение.');
     }
   }
 }
