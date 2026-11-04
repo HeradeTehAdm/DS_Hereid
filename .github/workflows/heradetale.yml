@@ -1,0 +1,55 @@
+name: HERADETALE checks
+
+on:
+  pull_request:
+    paths:
+      - "game/**"
+      - ".github/workflows/heradetale.yml"
+  push:
+    branches:
+      - "feature/heradetale-foundation"
+    paths:
+      - "game/**"
+      - ".github/workflows/heradetale.yml"
+
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: game/client/package.json
+      - name: Install client dependencies
+        working-directory: game/client
+        run: npm install
+      - name: Syntax checks
+        working-directory: game/client
+        run: npm run check
+      - name: Save tests
+        working-directory: game/client
+        run: npm test
+      - name: Production build
+        working-directory: game/client
+        run: npm run build
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: game/server/package.json
+      - name: Install server dependencies
+        working-directory: game/server
+        run: npm install
+      - name: Syntax checks
+        working-directory: game/server
+        run: npm run check
+      - name: Server tests
+        working-directory: game/server
+        run: npm test
