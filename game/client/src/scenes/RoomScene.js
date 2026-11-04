@@ -22,6 +22,13 @@ export class RoomScene extends Phaser.Scene {
       new Phaser.Geom.Rectangle(ROOM.x + 198, ROOM.y + 202, 42, 18)
     ];
     this.drawObstacles();
+    this.enemyMarker = this.add.container(this.encounter.x, this.encounter.y);
+    this.enemyMarker.add([
+      this.add.ellipse(0, 0, 26, 24, 0x7c3aed),
+      this.add.circle(-5, -2, 2, 0xf5f3ff),
+      this.add.circle(5, -2, 2, 0xf5f3ff)
+    ]);
+    this.add.text(this.encounter.x, this.encounter.y + 22, '???', { fontFamily: 'monospace', fontSize: '9px', color: '#a78bfa' }).setOrigin(0.5);
 
     this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,ENTER,SPACE,E');
     this.dialogue = [
@@ -36,6 +43,7 @@ export class RoomScene extends Phaser.Scene {
     ];
     this.dialogueIndex = 0;
     this.dialogueOpen = true;
+    this.encounter = { x: 470, y: 235, active: true };
 
     this.dialogueBox = this.add.rectangle(320, 300, 500, 70, 0x090610, 0.96)
       .setStrokeStyle(2, 0xa78bfa);
@@ -149,13 +157,16 @@ export class RoomScene extends Phaser.Scene {
 
     const nearGuide = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.guide.x, this.guide.y) < 42;
     const nearDoor = this.player.y < ROOM.y + 42 && Math.abs(this.player.x - 320) < 48;
-    this.prompt.setVisible(nearGuide || nearDoor);
+    const nearEnemy = this.encounter.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.encounter.x, this.encounter.y) < 38;
+    this.prompt.setVisible(nearGuide || nearDoor || nearEnemy);
     if (nearGuide) this.prompt.setPosition(this.guide.x, this.guide.y + 38).setText('E — поговорить');
     else if (nearDoor) this.prompt.setPosition(320, 76).setText('E — осмотреть дверь');
+    else if (nearEnemy) this.prompt.setPosition(this.encounter.x, this.encounter.y - 28).setText('E — вступить в бой');
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
       if (nearGuide) this.startDialogue(this.dialogue);
       else if (nearDoor) this.startDialogue(this.doorDialogue);
+      else if (nearEnemy && this.encounter.active) this.scene.start('BattleScene', { returnScene: 'RoomScene' });
     }
   }
 }
