@@ -97,6 +97,15 @@ async function linkAccount(interaction) {
     if (another) {
       return { error: "К твоему Discord уже привязан Minecraft-аккаунт " + another.username + ". Сначала используй /minecraft unlink." };
     }
+    const anotherRequest = db.prepare(`
+      SELECT username, status FROM minecraft_link_requests
+       WHERE discord_user_id=? AND uuid<>?
+         AND status IN ('awaiting_login','pending_approval') AND expires_at>?
+       LIMIT 1
+    `).get(interaction.user.id, profile.uuid, now);
+    if (anotherRequest) {
+      return { error: "У тебя уже есть активная заявка для " + anotherRequest.username + ". Заверши её или дождись истечения срока." };
+    }
 
     db.prepare(`
       INSERT INTO minecraft_link_requests
@@ -192,7 +201,21 @@ async function reviewRequest(interaction, approve) {
 
   const now = Date.now();
   if (approve) {
-    db.transaction(() => {
+    const approval = db.transaction(() => {
+      const anotherAccount = db.prepare(
+        "SELECT username FROM minecraft_accounts WHERE discord_user_id=? AND uuid<>?",
+      ).get(request.discord_user_id, request.uuid);
+      if (anotherAccount) {
+        return { error: "Пользователь уже привязал другой Minecraft-аккаунт: " + anotherAccount.username };
+      }
+
+      const changed = db.prepare(
+        "UPDATE minecraft_link_requests SET status='approved', handled_by=?, handled_at=? WHERE uuid=? AND status='pending_approval'",
+      ).run(interaction.user.id, now, request.uuid);
+      if (changed.changes !== 1) {
+        return { error: "Заявка уже была обработана другим администратором." };
+      }
+
       db.prepare(`
         INSERT INTO minecraft_accounts (uuid, username, discord_user_id, approved_at, approved_by, last_seen_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -200,12 +223,15 @@ async function reviewRequest(interaction, approve) {
           discord_user_id=excluded.discord_user_id, approved_at=excluded.approved_at,
           approved_by=excluded.approved_by, last_seen_at=excluded.last_seen_at
       `).run(request.uuid, request.username, request.discord_user_id, now, interaction.user.id, request.observed_at);
-      db.prepare("UPDATE minecraft_link_requests SET status='approved', handled_by=?, handled_at=? WHERE uuid=?")
-        .run(interaction.user.id, now, request.uuid);
       db.prepare("INSERT INTO admin_audit (guild_id,actor_id,action,target_id,details) VALUES (?,?,?,?,?)")
         .run(interaction.guildId, interaction.user.id, "minecraft_access_approved", request.discord_user_id,
           "uuid=" + request.uuid + "; username=" + request.username);
+      return { error: null };
     })();
+    if (approval.error) {
+      return interaction.reply({ content: "⛔ " + approval.error, flags: MessageFlags.Ephemeral });
+    }
+
     const user = await interaction.client.users.fetch(request.discord_user_id).catch(() => null);
     if (user) await user.send({ content: "✅ Доступ к Minecraft-серверу одобрен для " + request.username + ". Теперь можно подключаться.", allowedMentions: { parse: [] } }).catch(() => {});
     return interaction.reply({ content: "✅ Доступ одобрен: **" + request.username + "** (" + request.uuid + ").", flags: MessageFlags.Ephemeral });
