@@ -75,6 +75,14 @@ async function linkAccount(interaction) {
     return interaction.editReply({ content: "⚠️ " + error.message });
   }
 
+  const now = Date.now();
+  const activeRequest = db.prepare("SELECT discord_user_id, status, expires_at FROM minecraft_link_requests WHERE uuid=?").get(profile.uuid);
+  if (activeRequest && activeRequest.expires_at > now &&
+      ["awaiting_login", "pending_approval"].includes(activeRequest.status) &&
+      activeRequest.discord_user_id !== interaction.user.id) {
+    return interaction.editReply({ content: "Этот Minecraft-аккаунт уже имеет активную заявку от другого Discord. Если это твой аккаунт, обратись к администрации." });
+  }
+
   const existing = db.prepare("SELECT discord_user_id FROM minecraft_accounts WHERE uuid=?").get(profile.uuid);
   if (existing) {
     return interaction.editReply({ content: existing.discord_user_id === interaction.user.id
@@ -86,27 +94,24 @@ async function linkAccount(interaction) {
     return interaction.editReply({ content: "К твоему Discord уже привязан Minecraft-аккаунт " + another.username + ". Сначала используй /minecraft unlink." });
   }
 
-  const now = Date.now();
-  const code = String(crypto.randomInt(100000, 1000000));
   db.prepare(`
     INSERT INTO minecraft_link_requests
       (uuid, username, discord_user_id, code_hash, status, created_at, expires_at, observed_at, handled_by, handled_at)
-    VALUES (?, ?, ?, ?, 'awaiting_login', ?, ?, NULL, NULL, NULL)
+    VALUES (?, ?, ?, '', 'awaiting_login', ?, ?, NULL, NULL, NULL)
     ON CONFLICT(uuid) DO UPDATE SET
       username=excluded.username, discord_user_id=excluded.discord_user_id,
       code_hash=excluded.code_hash, status='awaiting_login',
       created_at=excluded.created_at, expires_at=excluded.expires_at,
       observed_at=NULL, handled_by=NULL, handled_at=NULL
-  `).run(profile.uuid, profile.username, interaction.user.id, hashCode(interaction.user.id, code), now, now + 600000);
+  `).run(profile.uuid, profile.username, interaction.user.id, now, now + 600000);
 
   return interaction.editReply({ content: [
     "🔐 **Запрос привязки создан.**",
     "Minecraft: **" + profile.username + "**",
     "UUID: " + profile.uuid,
-    "Код подтверждения: **" + code + "**",
     "",
-    "Теперь попробуй подключиться к Minecraft-серверу. Первая попытка будет отклонена и зафиксирована системой.",
-    "После этого вернись в Discord и выполни /minecraft confirm с этим кодом.",
+    "Теперь попробуй подключиться к Minecraft-серверу. Первая попытка будет отклонена, а одноразовый код появится в сообщении об отказе во входе.",
+    "Скопируй код из Minecraft и выполни здесь /minecraft confirm с этим кодом.",
     "Код действует 10 минут. Не передавай его другим людям.",
   ].join("\n") });
 }
