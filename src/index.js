@@ -6,6 +6,7 @@ const {
 const config = require("./config");
 const logger = require("./logger");
 const db = require("./database");
+const { startMinecraftApi } = require("./minecraft-api");
 const { isFeatureEnabled } = require("./features");
 const { addMessageXp } = require("./member-profile");
 const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateGuild } = require("./rank-system");
@@ -91,6 +92,7 @@ function loadCommands() {
 
 loadCommands();
 const adminPanel = client.commands.get("admin");
+const minecraftApi = startMinecraftApi({ db, config, logger });
 
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
@@ -303,6 +305,7 @@ async function shutdown(signal) {
 
   try {
     stopAutomationScheduler();
+    await minecraftApi.close();
     client.destroy();
     if (db.open) db.close();
     logger.info("Discord client and database closed.");
