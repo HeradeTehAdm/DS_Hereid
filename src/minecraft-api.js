@@ -17,6 +17,7 @@ function ensureSchema(db) {
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
       observed_at INTEGER,
+      challenge_expires_at INTEGER,
       handled_by TEXT,
       handled_at INTEGER
     );
@@ -39,6 +40,11 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_minecraft_api_nonces_expiry
       ON minecraft_api_nonces(expires_at);
   `);
+
+  const requestColumns = db.prepare("PRAGMA table_info(minecraft_link_requests)").all();
+  if (!requestColumns.some((column) => column.name === "challenge_expires_at")) {
+    db.exec("ALTER TABLE minecraft_link_requests ADD COLUMN challenge_expires_at INTEGER");
+  }
 }
 
 function send(res, status, payload = null) {
@@ -104,7 +110,7 @@ function startMinecraftApi({ db, config, logger }) {
   `);
   const saveChallenge = db.prepare(`
     UPDATE minecraft_link_requests
-       SET code_hash=?, observed_at=?
+       SET code_hash=?, observed_at=?, challenge_expires_at=?
      WHERE uuid=? AND status='awaiting_login' AND expires_at>?
   `);
   const markPendingObserved = db.prepare(`
@@ -127,7 +133,7 @@ function startMinecraftApi({ db, config, logger }) {
       const challenge = String(crypto.randomInt(10000000, 100000000));
       const codeHash = crypto.createHmac("sha256", config.minecraftApiToken)
         .update(awaiting.discord_user_id + ":" + challenge, "utf8").digest("hex");
-      const updated = saveChallenge.run(codeHash, now, uuid, now);
+      const updated = saveChallenge.run(codeHash, now, now + 10 * 60_000, uuid, now);
       return { approved: false, challenge: updated.changes ? challenge : null };
     }
 
