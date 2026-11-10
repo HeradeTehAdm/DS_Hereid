@@ -140,12 +140,15 @@ async function confirmAccount(interaction) {
   const code = interaction.options.getString("code", true).trim();
   const now = Date.now();
   const confirmation = db.transaction(() => {
-    const requests = db.prepare("SELECT uuid, username, code_hash, observed_at FROM minecraft_link_requests WHERE discord_user_id=? AND status='awaiting_login' AND expires_at>?")
+    const requests = db.prepare("SELECT uuid, username, code_hash, observed_at, challenge_expires_at FROM minecraft_link_requests WHERE discord_user_id=? AND status='awaiting_login' AND expires_at>?")
       .all(interaction.user.id, now);
     const request = requests.find((row) => safeEqualHex(row.code_hash, hashCode(interaction.user.id, code)));
     if (!request) return { error: "Код не найден или срок его действия истёк. Создай новый запрос командой /minecraft link." };
     if (!request.observed_at) {
       return { error: "Сначала попробуй подключиться к Minecraft-серверу. После отклонённой попытки повтори подтверждение." };
+    }
+    if (!request.challenge_expires_at || request.challenge_expires_at <= now) {
+      return { error: "Одноразовый код истёк. Попробуй подключиться к серверу ещё раз, чтобы получить новый." };
     }
     const changed = db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=? AND discord_user_id=? AND status='awaiting_login'")
       .run(request.uuid, interaction.user.id);
