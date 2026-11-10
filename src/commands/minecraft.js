@@ -184,10 +184,15 @@ async function showStatus(interaction) {
 }
 
 async function unlinkAccount(interaction) {
-  const result = db.prepare("DELETE FROM minecraft_accounts WHERE discord_user_id=?").run(interaction.user.id);
-  db.prepare("UPDATE minecraft_link_requests SET status='rejected', handled_by=?, handled_at=? WHERE discord_user_id=? AND status IN ('awaiting_login','pending_approval')")
-    .run(interaction.user.id, Date.now(), interaction.user.id);
-  return interaction.reply({ content: result.changes
+  const now = Date.now();
+  const result = db.transaction(() => {
+    const deleted = db.prepare("DELETE FROM minecraft_accounts WHERE discord_user_id=?")
+      .run(interaction.user.id);
+    db.prepare("UPDATE minecraft_link_requests SET status='rejected', handled_by=?, handled_at=? WHERE discord_user_id=? AND status IN ('awaiting_login','pending_approval','approved')")
+      .run(interaction.user.id, now, interaction.user.id);
+    return deleted.changes;
+  })();
+  return interaction.reply({ content: result
     ? "Привязка Minecraft-аккаунта удалена. Для повторного доступа потребуется новая регистрация и одобрение."
     : "У тебя нет привязанного Minecraft-аккаунта.", flags: MessageFlags.Ephemeral });
 }
@@ -213,6 +218,12 @@ async function reviewRequest(interaction, approve) {
       ).get(request.discord_user_id, request.uuid);
       if (anotherAccount) {
         return { error: "Пользователь уже привязал другой Minecraft-аккаунт: " + anotherAccount.username };
+      }
+      const linkedAccount = db.prepare(
+        "SELECT discord_user_id FROM minecraft_accounts WHERE uuid=?",
+      ).get(request.uuid);
+      if (linkedAccount && linkedAccount.discord_user_id !== request.discord_user_id) {
+        return { error: "Этот Minecraft-аккаунт уже привязан к другому Discord-пользователю." };
       }
 
       const changed = db.prepare(
