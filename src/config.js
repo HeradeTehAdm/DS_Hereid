@@ -19,6 +19,16 @@ function requiredSnowflake(name) {
   return value;
 }
 
+const minecraftApiToken = process.env.HERADE_CORE_API_TOKEN?.trim() || "";
+const minecraftApiHost = process.env.HERADE_CORE_API_HOST?.trim() || "127.0.0.1";
+const minecraftApiPort = Number(process.env.HERADE_CORE_API_PORT || 3068);
+if (!Number.isInteger(minecraftApiPort) || minecraftApiPort < 1 || minecraftApiPort > 65535) {
+  throw new Error("Invalid HERADE_CORE_API_PORT: use an integer from 1 to 65535.");
+}
+if (minecraftApiToken && Buffer.byteLength(minecraftApiToken, "utf8") < 32) {
+  throw new Error("HERADE_CORE_API_TOKEN must contain at least 32 UTF-8 bytes.");
+}
+
 const logLevel = (process.env.LOG_LEVEL || "info").trim().toLowerCase();
 if (!VALID_LOG_LEVELS.has(logLevel)) {
   throw new Error(`Invalid LOG_LEVEL: use one of ${[...VALID_LOG_LEVELS].join(", ")}.`);
@@ -42,4 +52,7 @@ module.exports = {
   ownerIds,
   databasePath: process.env.DATABASE_PATH?.trim() || "./data/bot.sqlite",
   logLevel,
+  minecraftApiToken,
+  minecraftApiHost,
+  minecraftApiPort,
 };
