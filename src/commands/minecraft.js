@@ -76,34 +76,42 @@ async function linkAccount(interaction) {
   }
 
   const now = Date.now();
-  const activeRequest = db.prepare("SELECT discord_user_id, status, expires_at FROM minecraft_link_requests WHERE uuid=?").get(profile.uuid);
-  if (activeRequest && activeRequest.expires_at > now &&
-      ["awaiting_login", "pending_approval"].includes(activeRequest.status) &&
-      activeRequest.discord_user_id !== interaction.user.id) {
-    return interaction.editReply({ content: "Этот Minecraft-аккаунт уже имеет активную заявку от другого Discord. Если это твой аккаунт, обратись к администрации." });
-  }
+  const createRequest = db.transaction(() => {
+    const activeRequest = db.prepare("SELECT discord_user_id, status, expires_at FROM minecraft_link_requests WHERE uuid=?").get(profile.uuid);
+    if (activeRequest && activeRequest.expires_at > now &&
+        ["awaiting_login", "pending_approval"].includes(activeRequest.status) &&
+        activeRequest.discord_user_id !== interaction.user.id) {
+      return { error: "Этот Minecraft-аккаунт уже имеет активную заявку от другого Discord. Если это твой аккаунт, обратись к администрации." };
+    }
+    if (activeRequest && activeRequest.expires_at > now && activeRequest.status === "pending_approval") {
+      return { error: "Твоя заявка уже подтверждена и ожидает решения администрации. Проверь /minecraft status." };
+    }
 
-  const existing = db.prepare("SELECT discord_user_id FROM minecraft_accounts WHERE uuid=?").get(profile.uuid);
-  if (existing) {
-    return interaction.editReply({ content: existing.discord_user_id === interaction.user.id
-      ? "Этот Minecraft-аккаунт уже привязан к твоему Discord."
-      : "Этот Minecraft-аккаунт уже привязан к другому Discord-аккаунту. Обратись к администрации." });
-  }
-  const another = db.prepare("SELECT username FROM minecraft_accounts WHERE discord_user_id=?").get(interaction.user.id);
-  if (another) {
-    return interaction.editReply({ content: "К твоему Discord уже привязан Minecraft-аккаунт " + another.username + ". Сначала используй /minecraft unlink." });
-  }
+    const existing = db.prepare("SELECT discord_user_id FROM minecraft_accounts WHERE uuid=?").get(profile.uuid);
+    if (existing) {
+      return { error: existing.discord_user_id === interaction.user.id
+        ? "Этот Minecraft-аккаунт уже привязан к твоему Discord."
+        : "Этот Minecraft-аккаунт уже привязан к другому Discord-аккаунту. Обратись к администрации." };
+    }
+    const another = db.prepare("SELECT username FROM minecraft_accounts WHERE discord_user_id=?").get(interaction.user.id);
+    if (another) {
+      return { error: "К твоему Discord уже привязан Minecraft-аккаунт " + another.username + ". Сначала используй /minecraft unlink." };
+    }
 
-  db.prepare(`
-    INSERT INTO minecraft_link_requests
-      (uuid, username, discord_user_id, code_hash, status, created_at, expires_at, observed_at, handled_by, handled_at)
-    VALUES (?, ?, ?, '', 'awaiting_login', ?, ?, NULL, NULL, NULL)
-    ON CONFLICT(uuid) DO UPDATE SET
-      username=excluded.username, discord_user_id=excluded.discord_user_id,
-      code_hash=excluded.code_hash, status='awaiting_login',
-      created_at=excluded.created_at, expires_at=excluded.expires_at,
-      observed_at=NULL, handled_by=NULL, handled_at=NULL
-  `).run(profile.uuid, profile.username, interaction.user.id, now, now + 600000);
+    db.prepare(`
+      INSERT INTO minecraft_link_requests
+        (uuid, username, discord_user_id, code_hash, status, created_at, expires_at, observed_at, handled_by, handled_at)
+      VALUES (?, ?, ?, '', 'awaiting_login', ?, ?, NULL, NULL, NULL)
+      ON CONFLICT(uuid) DO UPDATE SET
+        username=excluded.username, discord_user_id=excluded.discord_user_id,
+        code_hash=excluded.code_hash, status='awaiting_login',
+        created_at=excluded.created_at, expires_at=excluded.expires_at,
+        observed_at=NULL, handled_by=NULL, handled_at=NULL
+    `).run(profile.uuid, profile.username, interaction.user.id, now, now + 600000);
+    return { error: null };
+  });
+  const created = createRequest();
+  if (created.error) return interaction.editReply({ content: created.error });
 
   return interaction.editReply({ content: [
     "🔐 **Запрос привязки создан.**",
