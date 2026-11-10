@@ -216,8 +216,8 @@ async function reviewRequest(interaction, approve) {
       }
 
       const changed = db.prepare(
-        "UPDATE minecraft_link_requests SET status='approved', handled_by=?, handled_at=? WHERE uuid=? AND status='pending_approval'",
-      ).run(interaction.user.id, now, request.uuid);
+        "UPDATE minecraft_link_requests SET status='approved', handled_by=?, handled_at=? WHERE uuid=? AND status='pending_approval' AND observed_at IS NOT NULL AND expires_at>?",
+      ).run(interaction.user.id, now, request.uuid, now);
       if (changed.changes !== 1) {
         return { error: "Заявка уже была обработана другим администратором." };
       }
@@ -243,11 +243,19 @@ async function reviewRequest(interaction, approve) {
     return interaction.reply({ content: "✅ Доступ одобрен: **" + request.username + "** (" + request.uuid + ").", flags: MessageFlags.Ephemeral });
   }
 
-  db.prepare("UPDATE minecraft_link_requests SET status='rejected', handled_by=?, handled_at=? WHERE uuid=?")
-    .run(interaction.user.id, now, request.uuid);
-  db.prepare("INSERT INTO admin_audit (guild_id,actor_id,action,target_id,details) VALUES (?,?,?,?,?)")
-    .run(interaction.guildId, interaction.user.id, "minecraft_access_rejected", request.discord_user_id,
-      "uuid=" + request.uuid + "; username=" + request.username);
+  const rejection = db.transaction(() => {
+    const changed = db.prepare(
+      "UPDATE minecraft_link_requests SET status='rejected', handled_by=?, handled_at=? WHERE uuid=? AND status='pending_approval' AND observed_at IS NOT NULL AND expires_at>?",
+    ).run(interaction.user.id, now, request.uuid, now);
+    if (changed.changes !== 1) return false;
+    db.prepare("INSERT INTO admin_audit (guild_id,actor_id,action,target_id,details) VALUES (?,?,?,?,?)")
+      .run(interaction.guildId, interaction.user.id, "minecraft_access_rejected", request.discord_user_id,
+        "uuid=" + request.uuid + "; username=" + request.username);
+    return true;
+  })();
+  if (!rejection) {
+    return interaction.reply({ content: "Заявка уже обработана, не подтверждена или истекла.", flags: MessageFlags.Ephemeral });
+  }
   const user = await interaction.client.users.fetch(request.discord_user_id).catch(() => null);
   if (user) await user.send({ content: "Заявка на доступ к Minecraft для " + request.username + " отклонена администрацией.", allowedMentions: { parse: [] } }).catch(() => {});
   return interaction.reply({ content: "Заявка для **" + request.username + "** отклонена.", flags: MessageFlags.Ephemeral });
@@ -259,8 +267,8 @@ module.exports = {
     .setDescription("Регистрация и управление доступом к Herade House Minecraft.")
     .addSubcommand((s) => s.setName("link").setDescription("Создать запрос привязки Minecraft-аккаунта.")
       .addStringOption((o) => o.setName("username").setDescription("Имя Minecraft").setMinLength(3).setMaxLength(16).setRequired(true)))
-    .addSubcommand((s) => s.setName("confirm").setDescription("Подтвердить владение Minecraft-аккаунтом.")
-      .addStringOption((o) => o.setName("code").setDescription("Шестизначный код").setMinLength(8).setMaxLength(8).setRequired(true)))
+    .addSubcommand((s) => s.setName("confirm").setDescription("Подтвердить владение Minecraft-аккаунтом восьмизначным кодом.")
+      .addStringOption((o) => o.setName("code").setDescription("Восьмизначный код").setMinLength(8).setMaxLength(8).setRequired(true)))
     .addSubcommand((s) => s.setName("status").setDescription("Показать статус привязки Minecraft."))
     .addSubcommand((s) => s.setName("unlink").setDescription("Удалить свою привязку Minecraft."))
     .addSubcommand((s) => s.setName("approve").setDescription("Одобрить подтверждённую заявку Minecraft.")
