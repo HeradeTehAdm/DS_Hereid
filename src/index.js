@@ -93,6 +93,7 @@ function loadCommands() {
 loadCommands();
 const adminPanel = client.commands.get("admin");
 const minecraftApi = startMinecraftApi({ db, config, logger });
+minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to start; Minecraft login verification will remain unavailable.", error));
 
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
