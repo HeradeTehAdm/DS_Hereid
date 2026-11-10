@@ -58,6 +58,28 @@ async function main() {
     const replayResponse = await fetch(url, { method: "POST", headers, body });
     assert.equal(replayResponse.status, 409);
 
+    db.prepare("UPDATE minecraft_link_requests SET challenge_expires_at=? WHERE uuid=?")
+      .run(Date.now() - 1, uuid);
+    const refreshNonce = crypto.randomUUID();
+    const refreshTimestamp = String(Math.floor(Date.now() / 1000));
+    const refreshCanonical = [refreshTimestamp, refreshNonce, "POST", "/api/v1/minecraft/verify", body].join("\n");
+    const refreshSignature = crypto.createHmac("sha256", token).update(refreshCanonical, "utf8").digest("hex");
+    const refreshResponse = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "X-Herade-Timestamp": refreshTimestamp,
+        "X-Herade-Nonce": refreshNonce,
+        "X-Herade-Signature": refreshSignature,
+      },
+      body,
+    });
+    assert.equal(refreshResponse.status, 403);
+    const refreshedChallenge = await refreshResponse.json();
+    assert.match(refreshedChallenge.challenge, /^\d{8}$/);
+    const refreshedRow = db.prepare("SELECT code_hash FROM minecraft_link_requests WHERE uuid=?").get(uuid);
+    assert.notEqual(refreshedRow.code_hash, requestRow.code_hash, "expired challenge must be rotated");
+
     db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=?").run(uuid);
     const pendingNonce = crypto.randomUUID();
     const pendingTimestamp = String(Math.floor(Date.now() / 1000));
