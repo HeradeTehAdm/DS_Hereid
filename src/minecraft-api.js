@@ -124,7 +124,7 @@ function startMinecraftApi({ db, config, logger }) {
 
     const awaiting = findAwaitingRequest.get(uuid, now);
     if (awaiting) {
-      const challenge = String(crypto.randomInt(100000, 1000000));
+      const challenge = String(crypto.randomInt(10000000, 100000000));
       const codeHash = crypto.createHmac("sha256", config.minecraftApiToken)
         .update(awaiting.discord_user_id + ":" + challenge, "utf8").digest("hex");
       const updated = saveChallenge.run(codeHash, now, uuid, now);
