@@ -10,6 +10,22 @@ async function main() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "herade-minecraft-api-"));
   const db = new Database(path.join(directory, "test.sqlite"));
   const token = "test-secret-value-that-is-at-least-32-bytes";
+  // Simulate an existing production table from before challenge expiry was introduced.
+  db.exec(`
+    CREATE TABLE minecraft_link_requests (
+      uuid TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      discord_user_id TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'awaiting_login'
+        CHECK (status IN ('awaiting_login','pending_approval','approved','rejected','expired')),
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      observed_at INTEGER,
+      handled_by TEXT,
+      handled_at INTEGER
+    );
+  `);
   const config = {
     minecraftApiToken: token,
     minecraftApiHost: "127.0.0.1",
@@ -20,6 +36,9 @@ async function main() {
 
   try {
     await api.ready;
+    assert.ok(db.prepare("PRAGMA table_info(minecraft_link_requests)").all()
+      .some((column) => column.name === "challenge_expires_at"),
+    "legacy database should be migrated with challenge expiry column");
     const address = api.address();
     assert.ok(address && typeof address === "object" && address.port > 0);
 
