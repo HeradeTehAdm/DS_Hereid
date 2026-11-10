@@ -52,11 +52,11 @@ The panel includes:
 
 ## Minecraft registration
 
-- Players use `/minecraft link username`, then attempt to join the server. The server displays a short-lived one-time code only after receiving the authenticated Minecraft profile for that UUID.
-- The player enters that code with `/minecraft confirm code`. This creates a pending request; it does not grant access by itself.
+- Players use `/minecraft link username`, then attempt to join the server. The link request remains active for 30 minutes; the server displays an eight-digit one-time code after receiving the authenticated Minecraft profile for that UUID.
+- The player enters that code with `/minecraft confirm code`. The code expires after 10 minutes and can be rotated by attempting to join again while the request is active. Confirmation creates a pending request; it does not grant access by itself.
 - Staff with Manage Server or Administrator permission use `/minecraft approve uuid` or `/minecraft reject uuid` to decide the request. Players can check `/minecraft status` or remove their link with `/minecraft unlink`.
 - The Minecraft server must use `online-mode=true`. Enable `authentication.enabled=true` in the mod configuration and set the same `HERADE_CORE_API_TOKEN` in the mod's environment. Configure the mod's `authentication.api-base-url` as the public HTTPS base URL of the reverse proxy.
-- The API uses HMAC-SHA256 signatures, a short timestamp window, one-time nonces and a small request body limit. It stores link requests, approved UUIDs and replay-prevention nonces in the existing SQLite database; existing bot tables and member data are not reset.
+- The API uses HMAC-SHA256 signatures, a short timestamp window, one-time nonces and a small request body limit. It stores link requests, challenge hashes and expiries, approved UUIDs and replay-prevention nonces in the existing SQLite database. Existing tables are upgraded additively; existing bot tables and member data are not reset.
 - Keep the API listener bound to loopback when the reverse proxy runs on the same host. If the proxy is in another container or host, restrict network access to that proxy and terminate TLS there.
 
 ## Data and safety notes
