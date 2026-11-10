@@ -41,13 +41,15 @@ function ensureSchema(db) {
   `);
 }
 
-function send(res, status) {
+function send(res, status, payload = null) {
+  const body = payload == null ? Buffer.alloc(0) : Buffer.from(JSON.stringify(payload), "utf8");
   res.writeHead(status, {
     "Cache-Control": "no-store",
-    "Content-Length": "0",
+    "Content-Length": String(body.length),
     "X-Content-Type-Options": "nosniff",
+    ...(payload == null ? {} : { "Content-Type": "application/json; charset=utf-8" }),
   });
-  res.end();
+  res.end(body);
 }
 
 async function readBody(req) {
@@ -92,19 +94,22 @@ function startMinecraftApi({ db, config, logger }) {
   const touchAccount = db.prepare(
     "UPDATE minecraft_accounts SET username = ?, last_seen_at = ? WHERE uuid = ?",
   );
-  const markLoginObserved = db.prepare(`
+  const findAwaitingRequest = db.prepare(`
+    SELECT discord_user_id FROM minecraft_link_requests
+     WHERE uuid=? AND status='awaiting_login' AND expires_at>?
+  `);
+  const findPendingRequest = db.prepare(`
+    SELECT uuid FROM minecraft_link_requests
+     WHERE uuid=? AND status='pending_approval' AND expires_at>?
+  `);
+  const saveChallenge = db.prepare(`
     UPDATE minecraft_link_requests
-       SET observed_at = ?
-     WHERE uuid = ?
-       AND status = 'awaiting_login'
-       AND expires_at > ?
+       SET code_hash=?, observed_at=?
+     WHERE uuid=? AND status='awaiting_login' AND expires_at>?
   `);
   const markPendingObserved = db.prepare(`
-    UPDATE minecraft_link_requests
-       SET observed_at = ?
-     WHERE uuid = ?
-       AND status = 'pending_approval'
-       AND expires_at > ?
+    UPDATE minecraft_link_requests SET observed_at=?
+     WHERE uuid=? AND status='pending_approval' AND expires_at>?
   `);
 
   const verifyTransaction = db.transaction(({ nonce, nonceExpiry, uuid, username, now }) => {
@@ -114,12 +119,22 @@ function startMinecraftApi({ db, config, logger }) {
     const account = findAccount.get(uuid);
     if (account) {
       touchAccount.run(username, now, uuid);
-      return true;
+      return { approved: true, challenge: null };
     }
 
-    markLoginObserved.run(now, uuid, now);
-    markPendingObserved.run(now, uuid, now);
-    return false;
+    const awaiting = findAwaitingRequest.get(uuid, now);
+    if (awaiting) {
+      const challenge = String(crypto.randomInt(100000, 1000000));
+      const codeHash = crypto.createHmac("sha256", config.minecraftApiToken)
+        .update(awaiting.discord_user_id + ":" + challenge, "utf8").digest("hex");
+      const updated = saveChallenge.run(codeHash, now, uuid, now);
+      return { approved: false, challenge: updated.changes ? challenge : null };
+    }
+
+    if (findPendingRequest.get(uuid, now)) {
+      markPendingObserved.run(now, uuid, now);
+    }
+    return { approved: false, challenge: null };
   });
 
   const server = http.createServer(async (req, res) => {
@@ -177,14 +192,20 @@ function startMinecraftApi({ db, config, logger }) {
 
     try {
       const now = Date.now();
-      const approved = verifyTransaction({
+      const result = verifyTransaction({
         nonce,
         nonceExpiry: now + 5 * 60_000,
         uuid,
         username,
         now,
       });
-      send(res, approved ? 204 : 403);
+      if (result.approved) {
+        send(res, 204);
+      } else if (result.challenge) {
+        send(res, 403, { challenge: result.challenge });
+      } else {
+        send(res, 403);
+      }
     } catch (error) {
       if (error.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
           error.code === "SQLITE_CONSTRAINT_UNIQUE") {
