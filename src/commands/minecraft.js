@@ -139,18 +139,24 @@ async function confirmAccount(interaction) {
   }
   const code = interaction.options.getString("code", true).trim();
   const now = Date.now();
-  const requests = db.prepare("SELECT uuid, username, code_hash, observed_at FROM minecraft_link_requests WHERE discord_user_id=? AND status='awaiting_login' AND expires_at>?")
-    .all(interaction.user.id, now);
-  const request = requests.find((row) => safeEqualHex(row.code_hash, hashCode(interaction.user.id, code)));
-  if (!request) {
-    return interaction.reply({ content: "⛔ Код не найден или срок его действия истёк. Создай новый запрос командой /minecraft link.", flags: MessageFlags.Ephemeral });
+  const confirmation = db.transaction(() => {
+    const requests = db.prepare("SELECT uuid, username, code_hash, observed_at FROM minecraft_link_requests WHERE discord_user_id=? AND status='awaiting_login' AND expires_at>?")
+      .all(interaction.user.id, now);
+    const request = requests.find((row) => safeEqualHex(row.code_hash, hashCode(interaction.user.id, code)));
+    if (!request) return { error: "Код не найден или срок его действия истёк. Создай новый запрос командой /minecraft link." };
+    if (!request.observed_at) {
+      return { error: "Сначала попробуй подключиться к Minecraft-серверу. После отклонённой попытки повтори подтверждение." };
+    }
+    const changed = db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=? AND discord_user_id=? AND status='awaiting_login'")
+      .run(request.uuid, interaction.user.id);
+    if (changed.changes !== 1) return { error: "Этот код уже был использован." };
+    return { error: null, request };
+  });
+  const confirmed = confirmation();
+  if (confirmed.error) {
+    return interaction.reply({ content: "⛔ " + confirmed.error, flags: MessageFlags.Ephemeral });
   }
-  if (!request.observed_at) {
-    return interaction.reply({ content: "Сначала попробуй подключиться к Minecraft-серверу. После отклонённой попытки повтори подтверждение.", flags: MessageFlags.Ephemeral });
-  }
-
-  db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=? AND discord_user_id=? AND status='awaiting_login'")
-    .run(request.uuid, interaction.user.id);
+  const request = confirmed.request;
   await notifyOwners(interaction.client, [
     "🆕 **Новая заявка на доступ к Herade House Minecraft**",
     "Игрок: " + request.username,
