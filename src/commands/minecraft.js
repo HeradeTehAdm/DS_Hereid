@@ -116,7 +116,7 @@ async function linkAccount(interaction) {
         code_hash=excluded.code_hash, status='awaiting_login',
         created_at=excluded.created_at, expires_at=excluded.expires_at,
         observed_at=NULL, handled_by=NULL, handled_at=NULL
-    `).run(profile.uuid, profile.username, interaction.user.id, now, now + 600000);
+    `).run(profile.uuid, profile.username, interaction.user.id, now, now + 30 * 60_000);
     return { error: null };
   });
   const created = createRequest();
@@ -129,7 +129,7 @@ async function linkAccount(interaction) {
     "",
     "Теперь попробуй подключиться к Minecraft-серверу. Первая попытка будет отклонена, а одноразовый код появится в сообщении об отказе во входе.",
     "Скопируй код из Minecraft и выполни здесь /minecraft confirm с этим кодом.",
-    "Код действует 10 минут. Не передавай его другим людям.",
+    "Заявка действует 30 минут, одноразовый код — 10 минут. Не передавай его другим людям.",
   ].join("\n") });
 }
 
