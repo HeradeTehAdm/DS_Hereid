@@ -48,7 +48,7 @@ async function main() {
     const challengeResponse = await fetch(url, { method: "POST", headers, body });
     assert.equal(challengeResponse.status, 403);
     const challengePayload = await challengeResponse.json();
-    assert.match(challengePayload.challenge, /^\d{6}$/);
+    assert.match(challengePayload.challenge, /^\d{8}$/);
 
     const requestRow = db.prepare("SELECT code_hash, observed_at FROM minecraft_link_requests WHERE uuid=?").get(uuid);
     assert.match(requestRow.code_hash, /^[0-9a-f]{64}$/);
