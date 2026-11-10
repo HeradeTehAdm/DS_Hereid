@@ -218,6 +218,10 @@ function startMinecraftApi({ db, config, logger }) {
   });
 
   server.on("error", (error) => logger.error("Herade Security API listener error.", error));
+  const ready = new Promise((resolve, reject) => {
+    server.once("listening", resolve);
+    server.once("error", reject);
+  });
   server.listen(config.minecraftApiPort, config.minecraftApiHost, () => {
     logger.info(`Herade Security API listening on ${config.minecraftApiHost}:${config.minecraftApiPort}.`);
     if (config.minecraftApiHost !== "127.0.0.1" && config.minecraftApiHost !== "::1" &&
@@ -227,7 +231,10 @@ function startMinecraftApi({ db, config, logger }) {
   });
 
   return {
+    ready,
+    address: () => server.address(),
     close: () => new Promise((resolve, reject) => {
+      if (!server.listening) return resolve();
       server.close((error) => error ? reject(error) : resolve());
     }),
   };
