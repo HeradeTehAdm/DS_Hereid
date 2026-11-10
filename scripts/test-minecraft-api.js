@@ -58,6 +58,24 @@ async function main() {
     const replayResponse = await fetch(url, { method: "POST", headers, body });
     assert.equal(replayResponse.status, 409);
 
+    db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=?").run(uuid);
+    const pendingNonce = crypto.randomUUID();
+    const pendingTimestamp = String(Math.floor(Date.now() / 1000));
+    const pendingCanonical = [pendingTimestamp, pendingNonce, "POST", "/api/v1/minecraft/verify", body].join("\n");
+    const pendingSignature = crypto.createHmac("sha256", token).update(pendingCanonical, "utf8").digest("hex");
+    const pendingResponse = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "X-Herade-Timestamp": pendingTimestamp,
+        "X-Herade-Nonce": pendingNonce,
+        "X-Herade-Signature": pendingSignature,
+      },
+      body,
+    });
+    assert.equal(pendingResponse.status, 403);
+    assert.equal(await pendingResponse.text(), "", "pending approval must not expose another challenge");
+
     db.prepare(`
       INSERT INTO minecraft_accounts
         (uuid, username, discord_user_id, approved_at, approved_by, last_seen_at)
