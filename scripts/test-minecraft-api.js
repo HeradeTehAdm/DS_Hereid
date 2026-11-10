@@ -49,7 +49,7 @@ async function main() {
       INSERT INTO minecraft_link_requests
         (uuid, username, discord_user_id, code_hash, status, created_at, expires_at)
       VALUES (?, ?, ?, '', 'awaiting_login', ?, ?)
-    `).run(uuid, "HeradeTest", discordUserId, now, now + 600000);
+    `).run(uuid, "HeradeTest", discordUserId, now, now + 30 * 60_000);
 
     const body = JSON.stringify({ uuid, username: "HeradeTest" });
     const timestamp = String(Math.floor(Date.now() / 1000));
