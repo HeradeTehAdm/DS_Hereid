@@ -127,8 +127,9 @@ async function linkAccount(interaction) {
     "Minecraft: **" + profile.username + "**",
     "UUID: " + profile.uuid,
     "",
-    "Теперь попробуй подключиться к Minecraft-серверу. Первая попытка будет отклонена, а одноразовый код появится в сообщении об отказе во входе.",
-    "Скопируй код из Minecraft и выполни здесь /minecraft confirm с этим кодом.",
+    "Теперь зайди на Minecraft-сервер и в игровом чате выполни команду `/minecraft link`.",
+    "Herade Core отправит одноразовый код только тебе в личном игровом сообщении — остальные игроки его не увидят.",
+    "Скопируй код и выполни здесь `/minecraft confirm`, указав его в поле code.",
     "Заявка действует 30 минут, одноразовый код — 10 минут. Не передавай его другим людям.",
   ].join("\n") });
 }
@@ -145,10 +146,10 @@ async function confirmAccount(interaction) {
     const request = requests.find((row) => safeEqualHex(row.code_hash, hashCode(interaction.user.id, code)));
     if (!request) return { error: "Код не найден или срок его действия истёк. Создай новый запрос командой /minecraft link." };
     if (!request.observed_at) {
-      return { error: "Сначала попробуй подключиться к Minecraft-серверу. После отклонённой попытки повтори подтверждение." };
+      return { error: "Сначала зайди на сервер и выполни в игровом чате /minecraft link, чтобы получить код в личном сообщении." };
     }
     if (!request.challenge_expires_at || request.challenge_expires_at <= now) {
-      return { error: "Одноразовый код истёк. Попробуй подключиться к серверу ещё раз, чтобы получить новый." };
+      return { error: "Одноразовый код истёк. Выполни /minecraft link в игровом чате, чтобы получить новый." };
     }
     const changed = db.prepare("UPDATE minecraft_link_requests SET status='pending_approval' WHERE uuid=? AND discord_user_id=? AND status='awaiting_login'")
       .run(request.uuid, interaction.user.id);
@@ -181,7 +182,7 @@ async function showStatus(interaction) {
   const request = db.prepare("SELECT username, uuid, status, expires_at FROM minecraft_link_requests WHERE discord_user_id=? AND status IN ('awaiting_login','pending_approval') ORDER BY created_at DESC LIMIT 1")
     .get(interaction.user.id);
   if (!request) return interaction.reply({ content: "Minecraft-аккаунт не привязан.", flags: MessageFlags.Ephemeral });
-  const status = request.status === "pending_approval" ? "Ожидает одобрения администрации" : "Ожидает попытки входа и подтверждения кода";
+  const status = request.status === "pending_approval" ? "Ожидает одобрения администрации" : "Ожидает получения кода командой /minecraft link в игре и подтверждения";
   return interaction.reply({ content: "Minecraft: **" + request.username + "**\nUUID: " + request.uuid +
     "\nСтатус: **" + status + "**\nИстекает: <t:" + Math.floor(request.expires_at / 1000) + ":R>", flags: MessageFlags.Ephemeral });
 }
