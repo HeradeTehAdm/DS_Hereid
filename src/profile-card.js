@@ -259,7 +259,9 @@ async function renderProfileCard({ user, displayName, title, titleRarity, badge,
   const customStops = parseColorStops(colorValue);
   let fillStops = [c2, accent];
   if (customStops.length) {
-    fillStops = customStops.length > 1 ? customStops : [mixHex(customStops[0], "#000000", 0.4), customStops[0]];
+    // очень тёмные оттенки подтягиваем, чтобы полоска и кольцо были видны на тёмной карточке
+    const lifted = customStops.map((c) => (luminance(c) < 0.32 ? mixHex(c, "#ffffff", Math.min(0.55, (0.32 - luminance(c)) * 2.2 + 0.12)) : c));
+    fillStops = lifted.length > 1 ? lifted : [mixHex(lifted[0], "#000000", 0.4), lifted[0]];
     accent = readableAccent(customStops);
     c2 = fillStops[0];
   }
