@@ -360,6 +360,15 @@ db.exec(`
     details TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS casino_stats (
+    guild_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    games INTEGER NOT NULL DEFAULT 0,
+    wagered INTEGER NOT NULL DEFAULT 0,
+    returned INTEGER NOT NULL DEFAULT 0,
+    best_win INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+  );
   CREATE TABLE IF NOT EXISTS member_custom_profiles (
     guild_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -601,8 +610,34 @@ function transferCoins(guildId, senderId, recipientId, amount, now = Date.now())
   return run();
 }
 
+const CASINO_MIN_BET = 10;
+const CASINO_MAX_BET = 10_000;
+// Атомарно рассчитывает одну ставку: списывает ставку, начисляет выплату, пишет историю и статистику.
+function settleCasinoBet(guildId, userId, game, bet, payout, details = "", now = Date.now()) {
+  if (!Number.isSafeInteger(bet) || bet < CASINO_MIN_BET || bet > CASINO_MAX_BET) return { ok: false, reason: "invalid_bet" };
+  if (!Number.isSafeInteger(payout) || payout < 0 || payout > bet * 1000) return { ok: false, reason: "invalid_payout" };
+  const net = payout - bet;
+  const run = db.transaction(() => {
+    ensureMember.run(guildId, userId);
+    const update = db.prepare("UPDATE member_stats SET balance=balance+? WHERE guild_id=? AND user_id=? AND balance>=?")
+      .run(net, guildId, userId, bet);
+    if (update.changes !== 1) return { ok: false, reason: "insufficient_funds", balance: getBalance(guildId, userId).balance };
+    const kind = net > 0 ? "casino_win" : net < 0 ? "casino_loss" : "casino_push";
+    logTransaction.run(guildId, userId, null, net, kind, `${game}: ставка ${bet}, выплата ${payout}${details ? `, ${String(details).slice(0, 120)}` : ""}`, now);
+    db.prepare(`INSERT INTO casino_stats (guild_id,user_id,games,wagered,returned,best_win) VALUES (?,?,1,?,?,?)
+      ON CONFLICT(guild_id,user_id) DO UPDATE SET games=games+1, wagered=wagered+excluded.wagered, returned=returned+excluded.returned, best_win=MAX(best_win, excluded.best_win)`)
+      .run(guildId, userId, bet, payout, Math.max(0, net));
+    return { ok: true, net, payout, balance: getBalance(guildId, userId).balance };
+  });
+  return run();
+}
+function getCasinoStats(guildId, userId) {
+  const row = db.prepare("SELECT games,wagered,returned,best_win FROM casino_stats WHERE guild_id=? AND user_id=?").get(guildId, userId);
+  return { games: Number(row?.games || 0), wagered: Number(row?.wagered || 0), returned: Number(row?.returned || 0), bestWin: Number(row?.best_win || 0) };
+}
+
 function getTransactions(guildId, userId, limit = 10) {
   return db.prepare("SELECT amount,kind,details,created_at FROM economy_transactions WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT ?")
     .all(guildId,userId,Math.min(25,Math.max(1,limit)));
 }
-module.exports = { DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };
+module.exports = { CASINO_MIN_BET, CASINO_MAX_BET, settleCasinoBet, getCasinoStats, DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };
