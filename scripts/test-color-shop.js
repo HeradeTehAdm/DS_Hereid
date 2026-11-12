@@ -29,8 +29,11 @@ function fakeInteraction(customId, values) {
 }
 function checkComponents(payload) {
   assert.ok(payload.components.length <= 5);
+  const seen = new Set();
   for (const row of payload.components) for (const c of row.components) {
     const data = c.toJSON();
+    assert.ok(!seen.has(data.custom_id), `duplicate custom_id ${data.custom_id}`);
+    seen.add(data.custom_id);
     assert.ok(data.custom_id.length <= 100, data.custom_id);
     if (data.options) assert.ok(data.options.length >= 1 && data.options.length <= 25);
   }

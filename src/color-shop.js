@@ -161,10 +161,10 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
     .addOptions(RARITY_KEYS.map((key) => ({ label: RARITY_LABEL[key], value: key, default: key === rarity, emoji: key === "all" ? "🎯" : RARITY_EMOJI[key] })))));
   const other = mode === "c" ? "g" : "c";
   components.push(new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.max(0, page - 1))}`).setLabel("◀").setStyle(ButtonStyle.Secondary).setDisabled(page <= 0),
+    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.max(0, page - 1))}:prev`).setLabel("◀").setStyle(ButtonStyle.Secondary).setDisabled(page <= 0),
     new ButtonBuilder().setCustomId(`${PREFIX}:noop`).setLabel(`${page + 1}/${pages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
-    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.min(pages - 1, page + 1))}`).setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
-    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(other, rarity, 0)}`).setLabel(`${MODES[other].emoji} ${MODES[other].label}`).setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.min(pages - 1, page + 1))}:next`).setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
+    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(other, rarity, 0)}:swap`).setLabel(`${MODES[other].emoji} ${MODES[other].label}`).setStyle(ButtonStyle.Primary),
   ));
   return { embeds: [embed], files, components, attachments: [] };
 }
@@ -186,7 +186,7 @@ function detailPayload(guildId, userId, itemId, mode, rarity, page, note) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${PREFIX}:buy:${item.id}:${state(mode, rarity, page)}`).setLabel(owned ? "Куплено" : `Купить за ${money(item.price)}`).setEmoji("🛒").setStyle(ButtonStyle.Success).setDisabled(owned),
     new ButtonBuilder().setCustomId(`${PREFIX}:eq:${item.id}:${state(mode, rarity, page)}`).setLabel(equipped ? "Надето" : "Надеть").setEmoji("✨").setStyle(ButtonStyle.Primary).setDisabled(!owned || equipped),
-    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, page)}`).setLabel("К списку").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, page)}:back`).setLabel("К списку").setStyle(ButtonStyle.Secondary),
   );
   return { embeds: [embed], files: [new AttachmentBuilder(renderDetail(item), { name: "preview.png" })], components: [row], attachments: [] };
 }
