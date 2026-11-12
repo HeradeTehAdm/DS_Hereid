@@ -76,7 +76,9 @@ function checkComponents(payload) {
   assert.equal(i.calls[0][0], "update");
   i = fakeInteraction("shc:nav:g:2:1"); await colorShop.handle(i);
   assert.equal(i.calls[0][0], "update");
-    i = fakeInteraction("shc:unknown"); await colorShop.handle(i);
+    i = fakeInteraction("shc:rar:a:0:0", ["Мифический"]); await colorShop.handle(i);
+  assert.equal(i.calls[0][0], "update");
+  i = fakeInteraction("shc:unknown"); await colorShop.handle(i);
   assert.equal(i.calls[0][0], "reply");
   console.log("[ OK ] color shop: pages, components, buy/equip/select/nav");
 })().catch((e) => { console.error(e); process.exit(1); });

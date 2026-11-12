@@ -132,7 +132,7 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
   const owned = ownedSet(guildId, userId);
   const m = MODES[mode];
   const embed = new EmbedBuilder().setColor(0x7C5CFC)
-    .setTitle(`${m.emoji} ${m.label.toLocaleUpperCase("ru-RU")} ПРОФИЛЯ`)
+    .setTitle(`${m.emoji} ${m.label.toLocaleUpperCase("ru-RU")} ПРОФИЛЯ · ${RARITY_LABEL[rarity].toLocaleUpperCase("ru-RU")}`)
     .setDescription([
       note || null,
       `Страница **${page + 1}/${pages}** · всего в разделе: **${items.length}** · твой баланс: **${money(getBalance(guildId, userId).balance)}** 🪙`,
@@ -156,13 +156,17 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
   } else {
     embed.setDescription("В этом разделе пока ничего нет — попробуй другую редкость.");
   }
+  components.push(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+    .setCustomId(`${PREFIX}:rar:${state(mode, rarity, 0)}`)
+    .setPlaceholder("Редкость")
+    .addOptions(RARITY_KEYS.map((key) => ({ label: RARITY_LABEL[key], value: key, default: key === rarity, emoji: key === "all" ? "🎯" : RARITY_EMOJI[key] })))));
   components.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.max(0, page - 1))}:prev`).setLabel("◀").setStyle(ButtonStyle.Secondary).setDisabled(page <= 0),
     new ButtonBuilder().setCustomId(`${PREFIX}:noop`).setLabel(`${page + 1}/${pages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
     new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.min(pages - 1, page + 1))}:next`).setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
   ));
   components.push(new ActionRowBuilder().addComponents(...["a", "c", "g"].map((key) => new ButtonBuilder()
-    .setCustomId(`${PREFIX}:nav:${state(key, "all", 0)}:f${key}`)
+    .setCustomId(`${PREFIX}:nav:${state(key, rarity, 0)}:f${key}`)
     .setLabel(`${MODES[key].emoji} ${MODES[key].short}`)
     .setStyle(key === mode ? ButtonStyle.Primary : ButtonStyle.Secondary)
     .setDisabled(key === mode))));
