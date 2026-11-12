@@ -58,12 +58,12 @@ try {
     assert.equal(economy.equipItem(guild, user, "title_world_creator", 1_000_002).ok, true);
     assert.equal(economy.getCustomProfile(guild, user).title.value, "Создатель миров");
   });
-  test("/shop command exposes category and rarity filters", () => {
+  test("/shop command exposes the category filter", () => {
     const command = shopCommand.data.toJSON();
     assert.equal(command.name, "shop");
     const optionNames = command.options.map((option) => option.name);
     assert.ok(optionNames.includes("категория"));
-    assert.ok(optionNames.includes("редкость"));
+    assert.ok(!optionNames.includes("редкость"));
     assert.equal(typeof shopCommand.execute, "function");
   });
   await (async () => {

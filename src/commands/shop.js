@@ -110,17 +110,6 @@ module.exports = {
         { name: "Значки", value: "Значки" },
         { name: "Кастомные баннеры", value: "Баннеры" },
         { name: "Цвета", value: "Цвета" },
-      ))
-    .addStringOption((option) => option
-      .setName("редкость")
-      .setDescription("Показать предметы выбранной редкости")
-      .setRequired(false)
-      .addChoices(
-        { name: "Обычные", value: "Обычный" },
-        { name: "Редкие", value: "Редкий" },
-        { name: "Эпические", value: "Эпический" },
-        { name: "Легендарные", value: "Легендарный" },
-        { name: "Мифические", value: "Мифический" },
       )),
 
   async execute(interaction) {
@@ -129,9 +118,8 @@ module.exports = {
     }
     if (await economyDisabled(interaction)) return;
 
-    // Both filters are optional: opening /shop without options shows the full catalog.
+    // The category filter is optional: opening /shop without options shows the full catalog.
     const category = interaction.options.getString("категория") || "all";
-    const rarityFilter = interaction.options.getString("редкость") || null;
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     // Раздел «Цвета» — интерактивный: картинка-палитра, выбор в меню, покупка и применение кнопками.
@@ -140,8 +128,7 @@ module.exports = {
       return;
     }
     const filtered = CATALOG.filter((item) =>
-      (category === "all" || item.category === category) &&
-      (!rarityFilter || getItemRarity(item) === rarityFilter));
+      category === "all" || item.category === category);
     const items = sortCatalogItems(filtered);
     const banners = items.filter((item) => item.category === "Баннеры");
     const description = [
@@ -152,7 +139,6 @@ module.exports = {
         "",
         "🪙 **Покупка навсегда** · предмет останется в коллекции.",
         "🎒 Купи предмет → примени через `/equip` → посмотри в `/profile`.",
-        rarityFilter ? `**Редкость:** ${rarityFilter}` : null,
         `**Предметов в разделе:** ${items.length}`,
       ].filter(Boolean).join("\n");
     const embeds = [];
