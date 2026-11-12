@@ -71,26 +71,16 @@ try {
     await shopCommand.execute({
       inGuild: () => true,
       guildId: process.env.GUILD_ID,
+      user: { id: "12345678901234569" },
       options: { getString: () => null },
       deferReply: async () => {},
       editReply: async (payload) => { payloads.push(payload); },
-      followUp: async (payload) => { payloads.push(payload); },
     });
-    assert.ok(payloads.length >= 1, "shop should send at least one catalog page");
-    const embeds = payloads.flatMap((payload) => payload.embeds || []);
-    assert.ok(embeds.length > 1, "full catalog should paginate into multiple embeds");
-    assert.ok(embeds.length <= 10, "Discord allows at most 10 embeds per message");
-    for (const embed of embeds) {
-      const data = typeof embed.toJSON === "function" ? embed.toJSON() : embed;
-      const size = (data.title?.length || 0) +
-        (data.description?.length || 0) +
-        (data.footer?.text?.length || 0) +
-        (data.fields || []).reduce((sum, field) => sum + field.name.length + field.value.length, 0);
-      assert.ok(size <= 6000, `embed size ${size} exceeds Discord's 6000-character limit`);
-      assert.ok((data.fields || []).length <= 25, "embed has too many fields");
-    }
+    assert.equal(payloads.length, 1, "shop should open the interactive browser");
+    assert.ok(payloads[0].components.length >= 3 && payloads[0].components.length <= 5);
+    assert.equal(payloads[0].files.length, 1, "shop should attach a palette image");
     passed++;
-    console.log("[ OK ] /shop full catalog paginates within Discord embed limits");
+    console.log("[ OK ] /shop opens the interactive browser");
   })();
   db.close();
   console.log(`[test-shop-catalog] Passed: ${passed}`);

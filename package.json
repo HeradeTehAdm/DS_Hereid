@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "deploy:commands": "node src/deploy-commands.js",
     "check": "node scripts/check.js",
-    "test": "node scripts/test-settings.js && node scripts/test-features.js && node scripts/test-member-profile.js && node scripts/test-rank-system.js && node scripts/test-economy.js && node scripts/test-achievements.js && node scripts/test-automod.js && node scripts/test-shop-catalog.js && node scripts/test-color-shop.js && node scripts/test-report-system.js && node scripts/test-minecraft-api.js && node scripts/test-minecraft-review.js"
+    "test": "node scripts/test-settings.js && node scripts/test-features.js && node scripts/test-member-profile.js && node scripts/test-rank-system.js && node scripts/test-economy.js && node scripts/test-achievements.js && node scripts/test-automod.js && node scripts/test-shop-catalog.js && node scripts/test-shop-browser.js && node scripts/test-report-system.js && node scripts/test-minecraft-api.js && node scripts/test-minecraft-review.js"
   },
   "engines": {
     "node": ">=22.0.0"

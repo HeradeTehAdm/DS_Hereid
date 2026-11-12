@@ -13,7 +13,7 @@ const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateG
 const { evaluateAchievements } = require("./achievements");
 const { recordQuestProgress } = require("./economy");
 const reports = require("./commands/report");
-const colorShop = require("./color-shop");
+const shopBrowser = require("./shop-browser");
 const { moderateMessage } = require("./automod");
 const { startAutomationScheduler, stopAutomationScheduler } = require("./automation");
 
@@ -148,7 +148,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith("shc:")) {
-      await colorShop.handle(interaction);
+      await shopBrowser.handle(interaction);
       return;
     }
 
