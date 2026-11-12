@@ -317,14 +317,11 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
     new ButtonBuilder().setCustomId(`${PREFIX}:noop`).setLabel(`${page + 1}/${pages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
     new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.min(pages - 1, page + 1))}:next`).setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
   ));
-  components.push(new ActionRowBuilder().addComponents(
-    ...SECTION_BUTTONS.map(([key, label]) => new ButtonBuilder()
-      .setCustomId(`${PREFIX}:nav:${state(key, "all", 0)}:s${key}`)
-      .setLabel(label)
-      .setStyle(GROUP[mode] === key ? ButtonStyle.Primary : ButtonStyle.Secondary)
-      .setDisabled(GROUP[mode] === key)),
-    new ButtonBuilder().setCustomId(`${PREFIX}:cas`).setLabel("🎰 Казино").setStyle(ButtonStyle.Success),
-  ));
+  components.push(new ActionRowBuilder().addComponents(...SECTION_BUTTONS.map(([key, label]) => new ButtonBuilder()
+    .setCustomId(`${PREFIX}:nav:${state(key, "all", 0)}:s${key}`)
+    .setLabel(label)
+    .setStyle(GROUP[mode] === key ? ButtonStyle.Primary : ButtonStyle.Secondary)
+    .setDisabled(GROUP[mode] === key))));
   if (m.type === "color") {
     components.push(new ActionRowBuilder().addComponents(...["a", "c", "g"].map((key) => new ButtonBuilder()
       .setCustomId(`${PREFIX}:nav:${state(key, rarity, 0)}:f${key}`)
@@ -374,10 +371,6 @@ async function handle(interaction) {
   }
   const { guildId } = interaction; const userId = interaction.user.id;
   if (action === "noop") { await interaction.deferUpdate(); return; }
-  if (action === "cas") {
-    await interaction.update(require("./casino").openPayload(guildId, userId));
-    return;
-  }
   if (action === "nav") {
     const s = parseState(...rest);
     await interaction.update(listPayload(guildId, userId, s.mode, s.rarity, s.page));

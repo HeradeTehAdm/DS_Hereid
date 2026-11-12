@@ -128,7 +128,6 @@ function buildPayload(guildId, userId, { game = "slots", bet = DEFAULT_BET, note
       .setCustomId(`${PREFIX}:game:${key}:${bet}`).setLabel(info.label).setEmoji(info.emoji)
       .setStyle(key === game ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(disabled || key === game))),
     actionRow(game, bet, balance, disabled),
-    new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`${PREFIX}:shop`).setLabel("В магазин").setEmoji("🛍️").setStyle(ButtonStyle.Secondary).setDisabled(disabled)),
   ];
   return { embeds: [embed], files, components, attachments: [] };
 }
@@ -207,11 +206,6 @@ async function handle(interaction) {
   const { guildId } = interaction; const userId = interaction.user.id;
   const gameKey = GAMES[game] ? game : "slots";
   const bet = Math.min(CASINO_MAX_BET, Math.max(CASINO_MIN_BET, Number(rawBet) || DEFAULT_BET));
-  if (action === "shop") {
-    const shopBrowser = require("./shop-browser");
-    await interaction.update(await shopBrowser.openBrowser(guildId, userId, { mode: "t" }));
-    return;
-  }
   if (action === "game") {
     await interaction.update(buildPayload(guildId, userId, { game: gameKey, bet, image: gameKey === "slots" ? art.renderSlots([null, null, null], { caption: "Сделай ставку и крути!" }) : null }));
     return;
