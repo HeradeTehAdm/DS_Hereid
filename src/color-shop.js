@@ -12,8 +12,9 @@ const PAGE_SIZE = 20; // 5 колонок × 4 ряда, столько же п�
 const PREFIX = "shc";
 const COLORS = CATALOG.filter((item) => item.type === "color");
 const MODES = {
-  c: { label: "Цвета", emoji: "🎨", test: (item) => item.id.startsWith("color_") },
-  g: { label: "Градиенты", emoji: "🌈", test: (item) => item.id.startsWith("grad_") },
+  a: { label: "Цвета и градиенты", emoji: "🛍️", short: "Все", test: () => true },
+  c: { label: "Цвета", emoji: "🎨", short: "Цвета", test: (item) => item.id.startsWith("color_") },
+  g: { label: "Градиенты", emoji: "🌈", short: "Градиенты", test: (item) => item.id.startsWith("grad_") },
 };
 const RARITY_KEYS = ["all", ...RARITY_ORDER];
 const RARITY_LABEL = { all: "Все редкости", Обычный: "Обычные", Редкий: "Редкие", Эпический: "Эпические", Легендарный: "Легендарные", Мифический: "Мифические" };
@@ -120,7 +121,7 @@ function renderDetail(item) {
 function ownedSet(guildId, userId) { return new Set(getInventory(guildId, userId).map((row) => row.item_id)); }
 const state = (mode, rarity, page) => `${mode}:${RARITY_KEYS.indexOf(rarity)}:${page}`;
 function parseState(mode, rarityIndex, page) {
-  return { mode: MODES[mode] ? mode : "c", rarity: RARITY_KEYS[Number(rarityIndex)] || "all", page: Math.max(0, Number(page) || 0) };
+  return { mode: MODES[mode] ? mode : "a", rarity: RARITY_KEYS[Number(rarityIndex)] || "all", page: Math.max(0, Number(page) || 0) };
 }
 
 function listPayload(guildId, userId, mode, rarity, page, note) {
@@ -131,7 +132,7 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
   const owned = ownedSet(guildId, userId);
   const m = MODES[mode];
   const embed = new EmbedBuilder().setColor(0x7C5CFC)
-    .setTitle(`${m.emoji} ${m.label.toLocaleUpperCase("ru-RU")} ПРОФИЛЯ · ${RARITY_LABEL[rarity].toLocaleUpperCase("ru-RU")}`)
+    .setTitle(`${m.emoji} ${m.label.toLocaleUpperCase("ru-RU")} ПРОФИЛЯ`)
     .setDescription([
       note || null,
       `Страница **${page + 1}/${pages}** · всего в разделе: **${items.length}** · твой баланс: **${money(getBalance(guildId, userId).balance)}** 🪙`,
@@ -155,17 +156,16 @@ function listPayload(guildId, userId, mode, rarity, page, note) {
   } else {
     embed.setDescription("В этом разделе пока ничего нет — попробуй другую редкость.");
   }
-  components.push(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
-    .setCustomId(`${PREFIX}:rar:${state(mode, rarity, 0)}`)
-    .setPlaceholder("Редкость")
-    .addOptions(RARITY_KEYS.map((key) => ({ label: RARITY_LABEL[key], value: key, default: key === rarity, emoji: key === "all" ? "🎯" : RARITY_EMOJI[key] })))));
-  const other = mode === "c" ? "g" : "c";
   components.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.max(0, page - 1))}:prev`).setLabel("◀").setStyle(ButtonStyle.Secondary).setDisabled(page <= 0),
     new ButtonBuilder().setCustomId(`${PREFIX}:noop`).setLabel(`${page + 1}/${pages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
     new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(mode, rarity, Math.min(pages - 1, page + 1))}:next`).setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
-    new ButtonBuilder().setCustomId(`${PREFIX}:nav:${state(other, rarity, 0)}:swap`).setLabel(`${MODES[other].emoji} ${MODES[other].label}`).setStyle(ButtonStyle.Primary),
   ));
+  components.push(new ActionRowBuilder().addComponents(...["a", "c", "g"].map((key) => new ButtonBuilder()
+    .setCustomId(`${PREFIX}:nav:${state(key, "all", 0)}:f${key}`)
+    .setLabel(`${MODES[key].emoji} ${MODES[key].short}`)
+    .setStyle(key === mode ? ButtonStyle.Primary : ButtonStyle.Secondary)
+    .setDisabled(key === mode))));
   return { embeds: [embed], files, components, attachments: [] };
 }
 
@@ -191,7 +191,7 @@ function detailPayload(guildId, userId, itemId, mode, rarity, page, note) {
   return { embeds: [embed], files: [new AttachmentBuilder(renderDetail(item), { name: "preview.png" })], components: [row], attachments: [] };
 }
 
-function openBrowser(guildId, userId, { mode = "c", rarity = "all" } = {}) {
+function openBrowser(guildId, userId, { mode = "a", rarity = "all" } = {}) {
   return listPayload(guildId, userId, mode, rarity, 0);
 }
 

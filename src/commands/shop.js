@@ -136,7 +136,7 @@ module.exports = {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     // Раздел «Цвета» — интерактивный: картинка-палитра, выбор в меню, покупка и применение кнопками.
     if (category === "Цвета") {
-      await interaction.editReply(colorShop.openBrowser(interaction.guildId, interaction.user.id, { rarity: rarityFilter || "all" }));
+      await interaction.editReply(colorShop.openBrowser(interaction.guildId, interaction.user.id, {}));
       return;
     }
     const filtered = CATALOG.filter((item) =>

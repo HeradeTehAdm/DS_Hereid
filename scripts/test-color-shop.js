@@ -40,7 +40,7 @@ function checkComponents(payload) {
 }
 
 (async () => {
-  for (const mode of ["c", "g"]) {
+  for (const mode of ["a", "c", "g"]) {
     for (const rarity of ["all", ...economy.RARITY_ORDER]) {
       const items = colorShop.listItems(mode, rarity);
       const pages = Math.max(1, Math.ceil(items.length / 20));
@@ -51,7 +51,7 @@ function checkComponents(payload) {
       }
     }
   }
-  assert.equal(colorShop.listItems("c", "all").length + colorShop.listItems("g", "all").length, economy.CATALOG.filter((i) => i.type === "color").length);
+  assert.equal(colorShop.listItems("a", "all").length, economy.CATALOG.filter((i) => i.type === "color").length);
 
   const item = colorShop.listItems("c", "Обычный")[0];
   let detail = colorShop.detailPayload(guild, user, item.id, "c", "all", 0);
@@ -76,9 +76,7 @@ function checkComponents(payload) {
   assert.equal(i.calls[0][0], "update");
   i = fakeInteraction("shc:nav:g:2:1"); await colorShop.handle(i);
   assert.equal(i.calls[0][0], "update");
-  i = fakeInteraction("shc:rar:c:0:0", ["Редкий"]); await colorShop.handle(i);
-  assert.equal(i.calls[0][0], "update");
-  i = fakeInteraction("shc:unknown"); await colorShop.handle(i);
+    i = fakeInteraction("shc:unknown"); await colorShop.handle(i);
   assert.equal(i.calls[0][0], "reply");
   console.log("[ OK ] color shop: pages, components, buy/equip/select/nav");
 })().catch((e) => { console.error(e); process.exit(1); });
