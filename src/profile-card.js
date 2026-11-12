@@ -607,4 +607,4 @@ function fitSize(ctx, text, maxWidth, startSize, family) {
   return size;
 }
 
-module.exports = { renderProfileCard, THEMES };
+module.exports = { renderProfileCard, THEMES, ensureFonts };

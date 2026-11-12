@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { CATALOG, RARITY_ORDER, getItemRarity } = require("../economy");
 const { economyDisabled } = require("../economy-access");
+const colorShop = require("../color-shop");
 
 const CATEGORY_LABELS = {
   Титулы: "🏷️ ТИТУЛЫ",
@@ -133,6 +134,11 @@ module.exports = {
     const rarityFilter = interaction.options.getString("редкость") || null;
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Раздел «Цвета» — интерактивный: картинка-палитра, выбор в меню, покупка и применение кнопками.
+    if (category === "Цвета") {
+      await interaction.editReply(colorShop.openBrowser(interaction.guildId, interaction.user.id, { rarity: rarityFilter || "all" }));
+      return;
+    }
     const filtered = CATALOG.filter((item) =>
       (category === "all" || item.category === category) &&
       (!rarityFilter || getItemRarity(item) === rarityFilter));
@@ -179,6 +185,14 @@ module.exports = {
     const renderCategory = (itemCategory) => {
       const categoryItems = items.filter((item) => item.category === itemCategory);
       if (!categoryItems.length) return;
+      if (itemCategory === "Цвета" && category === "all") {
+        addPagedField({
+          name: CATEGORY_LABELS[itemCategory],
+          value: `Цветов и градиентов: **${categoryItems.length}**. Открой раздел с картинками и выбором: \`/shop категория:Цвета\``,
+          inline: false,
+        });
+        return;
+      }
       for (const rarity of RARITY_ORDER) {
         const group = categoryItems
           .filter((item) => getItemRarity(item) === rarity)

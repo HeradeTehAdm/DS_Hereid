@@ -13,6 +13,7 @@ const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateG
 const { evaluateAchievements } = require("./achievements");
 const { recordQuestProgress } = require("./economy");
 const reports = require("./commands/report");
+const colorShop = require("./color-shop");
 const { moderateMessage } = require("./automod");
 const { startAutomationScheduler, stopAutomationScheduler } = require("./automation");
 
@@ -143,6 +144,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
           flags: MessageFlags.Ephemeral,
         });
       }
+      return;
+    }
+
+    if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith("shc:")) {
+      await colorShop.handle(interaction);
       return;
     }
 
