@@ -8,6 +8,7 @@ const KIND_LABELS = {
   admin_adjustment: "🛡️ Корректировка администратора",
   quest: "📜 Награда за задание",
   transfer_sent: "📤 Перевод монет",
+  promo: "🎟️ Промокод",
   casino_win: "🎰 Казино: выигрыш",
   casino_loss: "🎰 Казино: проигрыш",
   casino_push: "🎰 Казино: ставка возвращена",

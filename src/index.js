@@ -15,6 +15,7 @@ const { recordQuestProgress } = require("./economy");
 const reports = require("./commands/report");
 const shopBrowser = require("./shop-browser");
 const casino = require("./casino");
+const promoCodes = require("./promo");
 const { moderateMessage } = require("./automod");
 const { startAutomationScheduler, stopAutomationScheduler } = require("./automation");
 
@@ -101,6 +102,9 @@ client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
   logger.info(`Connected to ${readyClient.guilds.cache.size} guild(s).`);
   startAutomationScheduler(readyClient);
+  for (const guild of readyClient.guilds.cache.values()) {
+    try { if (promoCodes.seedDefaultPromos(guild.id)) logger.info(`Создан стартовый промокод для сервера ${guild.id}.`); } catch (error) { logger.error("Не удалось создать стартовый промокод.", error); }
+  }
 
   const rankGuild = await readyClient.guilds.fetch(config.guildId).catch(() => null);
   if (rankGuild) {

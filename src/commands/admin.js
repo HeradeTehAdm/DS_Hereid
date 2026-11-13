@@ -5,6 +5,7 @@ const {
 } = require("discord.js");
 const db = require("../database");
 const { FEATURES, isFeatureEnabled, setFeatureEnabled, listFeatures } = require("../features");
+const promos = require("../promo");
 
 const SECTIONS = {
   users: ["👥 Участники", "Просмотр профилей и статистики участников."],
@@ -14,6 +15,7 @@ const SECTIONS = {
   stats: ["📊 Статистика", "Состояние сервера и активность."],
   logs: ["📜 Журнал аудита", "Последние действия администраторов."],
   features: ["🧩 Функции бота", "Состояние и включение обычных функций."],
+  promo: ["🎟️ Промокоды", "Создание промокодов на монеты с лимитом участников."],
 };
 
 function audit(guildId, actorId, action, targetId = null, details = "") {
@@ -82,6 +84,7 @@ function mainRows() {
     ),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("ha:features").setLabel("Функции бота").setEmoji("🧩").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId("ha:promo").setLabel("Промокоды").setEmoji("🎟️").setStyle(ButtonStyle.Primary),
     ),
   ];
 }
@@ -100,6 +103,62 @@ function idModal(customId, title, label = "Discord ID участника", place
   return modal;
 }
 function validId(id) { return /^\d{17,20}$/.test(id); }
+
+const coinsText = (n) => Number(n).toLocaleString("ru-RU");
+function promoLine(row) {
+  const expiry = row.expires_at === null ? "" : row.expires_at <= Date.now() ? " · истёк" : ` · до ${new Date(row.expires_at).toLocaleDateString("ru-RU")}`;
+  const usage = row.max_uses === null ? `${row.uses} (для всех)` : `${row.uses} из ${row.max_uses}`;
+  return `${row.active ? "🟢" : "🔴"} **${row.code}** — ${coinsText(row.coins)} 🪙 · использовано: ${usage}${expiry}`;
+}
+function promoPanel(guildId, note = null) {
+  const rows = promos.listPromos(guildId, 25);
+  const embed = new EmbedBuilder().setColor(0x5865f2).setTitle("🎟️ Промокоды")
+    .setDescription([
+      note,
+      rows.length ? rows.slice(0, 15).map(promoLine).join("\n") : "Пока нет ни одного промокода.",
+      "",
+      "Участники активируют код командой `/promo код:...`. Один код — один раз на человека.",
+    ].filter((line) => line !== null).join("\n"));
+  const components = [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId("ha:promo:create").setLabel("Создать промокод").setEmoji("➕").setStyle(ButtonStyle.Success),
+  )];
+  if (rows.length) {
+    components.push(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("ha:promo:pick").setPlaceholder("Выбрать промокод для управления")
+      .addOptions(rows.map((row) => ({ label: row.code.slice(0, 100), description: `${coinsText(row.coins)} монет · ${row.active ? "активен" : "отключён"} · ${row.uses}${row.max_uses === null ? "" : `/${row.max_uses}`} использ.`.slice(0, 100), value: row.code })))));
+  }
+  components.push(backRow());
+  return { embeds: [embed], components };
+}
+function promoDetail(guildId, code, note = null) {
+  const row = promos.getPromo(guildId, code);
+  if (!row) return promoPanel(guildId, "⚠️ Промокод не найден.");
+  const embed = new EmbedBuilder().setColor(row.active ? 0x57F287 : 0xED4245).setTitle(`🎟️ ${row.code}`)
+    .setDescription([note, promoLine(row), "", `Награда: **${coinsText(row.coins)}** 🪙`, `Лимит участников: **${row.max_uses === null ? "без лимита — для всех" : row.max_uses}**`, `Статус: **${row.active ? "активен" : "отключён"}**`].filter((line) => line !== null).join("\n"));
+  return { embeds: [embed], components: [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`ha:promo:toggle:${row.code}`).setLabel(row.active ? "Отключить" : "Включить").setStyle(row.active ? ButtonStyle.Secondary : ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`ha:promo:del:${row.code}`).setLabel("Удалить").setEmoji("🗑️").setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId("ha:promo:list").setLabel("К списку").setStyle(ButtonStyle.Secondary),
+    ),
+  ] };
+}
+function promoModal() {
+  const modal = new ModalBuilder().setCustomId("ha:modal:promo").setTitle("Новый промокод");
+  const input = (id, label, placeholder, required, max = 24) => new ActionRowBuilder().addComponents(
+    new TextInputBuilder().setCustomId(id).setLabel(label).setPlaceholder(placeholder).setStyle(TextInputStyle.Short).setMinLength(required ? 1 : 0).setMaxLength(max).setRequired(required));
+  modal.addComponents(
+    input("code", "Промокод (буквы и цифры, 3–24 символа)", "Например: ДОДЕП", true),
+    input("coins", "Сколько монет получит каждый", "Например: 1000", true, 9),
+    input("max_uses", "Сколько участников (пусто = для всех)", "Например: 50 — или оставь пустым", false, 9),
+    input("days", "Срок действия в днях (пусто = бессрочно)", "Например: 7", false, 4),
+  );
+  return modal;
+}
+function parseOptionalInt(raw) {
+  const text = String(raw ?? "").replace(/[\s,]/g, "");
+  if (!text) return null;
+  return /^\d+$/.test(text) ? Number(text) : NaN;
+}
 
 module.exports = {
   data: new SlashCommandBuilder().setName("admin").setDescription("Открыть административную панель HeradeLegend.").setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -198,6 +257,10 @@ module.exports = {
         });
         return true;
       }
+      if (section === "promo") {
+        await interaction.reply({ ...promoPanel(interaction.guildId), flags: MessageFlags.Ephemeral });
+        return true;
+      }
       if (section === "users") {
         await interaction.reply({ content: "Выбери действие с участником.", components: [
           new ActionRowBuilder().addComponents(
@@ -229,7 +292,7 @@ module.exports = {
           new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("ha:roles:select").setPlaceholder("Выбери роль").addOptions(options)),
           new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("ha:roles:section").setPlaceholder("Раздел доступа").addOptions(
             {label:"Вся панель",value:"all"},{label:"Участники",value:"users"},{label:"Модерация",value:"moderation"},
-{label:"Настройки",value:"settings"},{label:"Статистика",value:"stats"},{label:"Аудит",value:"logs"},{label:"Функции бота",value:"features"}
+{label:"Настройки",value:"settings"},{label:"Статистика",value:"stats"},{label:"Аудит",value:"logs"},{label:"Функции бота",value:"features"},{label:"Промокоды",value:"promo"}
           )),
           new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId("ha:roles:grant").setLabel("Выдать доступ").setStyle(ButtonStyle.Success),
@@ -372,6 +435,52 @@ module.exports = {
       });
       persist();
       await interaction.reply({content:`✅ Настройка сохранена. ${label}${action==="welcome"||action==="goodbye"?"\nПеременные в тексте: {user} и {server}.":""}`,flags:MessageFlags.Ephemeral});return true;
+    }
+    if (id.startsWith("ha:promo:") || id === "ha:modal:promo") {
+      if (!allowed(interaction, "promo")) { await interaction.reply({ content: "⛔ Нет доступа.", flags: MessageFlags.Ephemeral }); return true; }
+      if (id === "ha:promo:create") { await interaction.showModal(promoModal()); return true; }
+      if (id === "ha:promo:list") { await interaction.update(promoPanel(interaction.guildId)); return true; }
+      if (id === "ha:promo:pick" && interaction.isStringSelectMenu()) { await interaction.update(promoDetail(interaction.guildId, interaction.values[0])); return true; }
+      if (id.startsWith("ha:promo:toggle:") || id.startsWith("ha:promo:del:")) {
+        const del = id.startsWith("ha:promo:del:");
+        const code = id.slice(del ? "ha:promo:del:".length : "ha:promo:toggle:".length);
+        const row = promos.getPromo(interaction.guildId, code);
+        if (!row) { await interaction.update(promoPanel(interaction.guildId, "⚠️ Промокод не найден.")); return true; }
+        if (del) {
+          promos.deletePromo(interaction.guildId, code);
+          audit(interaction.guildId, interaction.user.id, "promo_deleted", null, row.code);
+          await interaction.update(promoPanel(interaction.guildId, `🗑️ Промокод **${row.code}** удалён.`));
+        } else {
+          const next = !row.active;
+          promos.setPromoActive(interaction.guildId, code, next);
+          audit(interaction.guildId, interaction.user.id, "promo_toggled", null, `${row.code}: ${next ? "on" : "off"}`);
+          await interaction.update(promoDetail(interaction.guildId, code, next ? "✅ Промокод включён." : "⏸️ Промокод отключён."));
+        }
+        return true;
+      }
+      if (interaction.isModalSubmit() && id === "ha:modal:promo") {
+        const coins = parseOptionalInt(interaction.fields.getTextInputValue("coins"));
+        const maxUses = parseOptionalInt(interaction.fields.getTextInputValue("max_uses"));
+        const days = parseOptionalInt(interaction.fields.getTextInputValue("days"));
+        const result = promos.createPromo(interaction.guildId, {
+          code: interaction.fields.getTextInputValue("code"), coins: coins === null ? NaN : coins, maxUses, days, createdBy: interaction.user.id,
+        });
+        if (!result.ok) {
+          const reasons = {
+            invalid_code: "Код: только буквы, цифры, «_» и «-», от 3 до 24 символов.", invalid_coins: `Монеты: целое число от 1 до ${coinsText(promos.PROMO_MAX_COINS)}.`,
+            invalid_uses: `Участники: целое число от 1 до ${coinsText(promos.PROMO_MAX_USES)} или пусто (для всех).`, invalid_days: "Срок: целое число дней от 1 до 3650 или пусто.", exists: "Такой промокод уже есть.",
+          };
+          await interaction.reply({ content: `⚠️ ${reasons[result.reason] || "Не удалось создать промокод."}`, flags: MessageFlags.Ephemeral });
+          return true;
+        }
+        audit(interaction.guildId, interaction.user.id, "promo_created", null, `${result.code}: ${result.coins} монет, участников: ${result.maxUses ?? "без лимита"}`);
+        const embed = new EmbedBuilder().setColor(0x57F287).setTitle("🎟️ Промокод создан")
+          .setDescription([`Код: **${result.code}**`, `Награда: **${coinsText(result.coins)}** 🪙`, `Участников: **${result.maxUses === null ? "без лимита — для всех" : result.maxUses}**`,
+            `Срок: **${result.expiresAt === null ? "бессрочно" : new Date(result.expiresAt).toLocaleDateString("ru-RU")}**`, "", `Пусть участники пишут: \`/promo код:${result.code}\``].join("\n"));
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        return true;
+      }
+      return true;
     }
     if (id === "ha:user:lookup" || id === "ha:user:xp") {
       if (!allowed(interaction, "users")) { await interaction.reply({content:"⛔ Нет доступа.",flags:MessageFlags.Ephemeral}); return true; }

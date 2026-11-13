@@ -631,6 +631,15 @@ function settleCasinoBet(guildId, userId, game, bet, payout, details = "", now =
   });
   return run();
 }
+// Начисляет монеты и пишет запись в историю. Вызывается внутри транзакций других модулей (например, промокодов).
+function creditCoins(guildId, userId, amount, kind, description, now = Date.now()) {
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Сумма начисления должна быть положительным целым числом.");
+  ensureMember.run(guildId, userId);
+  db.prepare("UPDATE member_stats SET balance=balance+? WHERE guild_id=? AND user_id=?").run(amount, guildId, userId);
+  logTransaction.run(guildId, userId, null, amount, kind, String(description).slice(0, 200), now);
+  return getBalance(guildId, userId).balance;
+}
+
 function getCasinoStats(guildId, userId) {
   const row = db.prepare("SELECT games,wagered,returned,best_win FROM casino_stats WHERE guild_id=? AND user_id=?").get(guildId, userId);
   return { games: Number(row?.games || 0), wagered: Number(row?.wagered || 0), returned: Number(row?.returned || 0), bestWin: Number(row?.best_win || 0) };
@@ -640,4 +649,4 @@ function getTransactions(guildId, userId, limit = 10) {
   return db.prepare("SELECT amount,kind,details,created_at FROM economy_transactions WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT ?")
     .all(guildId,userId,Math.min(25,Math.max(1,limit)));
 }
-module.exports = { CASINO_MIN_BET, CASINO_MAX_BET, settleCasinoBet, getCasinoStats, DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };
+module.exports = { creditCoins, CASINO_MIN_BET, CASINO_MAX_BET, settleCasinoBet, getCasinoStats, DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };
