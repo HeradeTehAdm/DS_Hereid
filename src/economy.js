@@ -101,6 +101,7 @@ const CATALOG = Object.freeze([
   { id: "badge_moon", name: "Значок «Луна»", category: "Значки", description: "Спокойный ночной стиль.", price: 550, type: "badge", value: "🌙" },
   { id: "badge_comet", name: "Значок «Комета»", category: "Значки", description: "Космический значок для профиля.", price: 750, type: "badge", value: "☄️" },
   { id: "badge_heart", name: "Значок «Сердце»", category: "Значки", description: "Небольшая деталь оформления.", price: 350, type: "badge", value: "💜" },
+  ...require("./badges-extra"),
 
   // Баннеры профиля: индивидуальные художественные темы вместо рамок.
   { id: "banner_ocean", name: "Баннер «Бездна океана»", category: "Баннеры", description: "Глубокая вода, бирюзовые лучи и морская дымка.", price: 900, type: "banner", value: "Океан" },
