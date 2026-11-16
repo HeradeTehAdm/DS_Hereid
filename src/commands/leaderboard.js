@@ -1,33 +1,21 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
-const { getLeaderboard } = require("../rank-system");
-
-const RANK_EMOJI = {
-  LEGEND: "👑", ELITE: "💎", MASTER: "🏆", VETERAN: "🔥",
-  ACTIVE: "⚡", MEMBER: "🌟", NEWBIE: "🌱",
-};
+const { SlashCommandBuilder, MessageFlags } = require("discord.js");
+const ui = require("../leaderboard-ui");
+const { MODES } = require("../leaderboard");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("leaderboard")
-    .setDescription("Показать рейтинг участников по рангу и активности."),
+    .setDescription("Рейтинг участников картинкой: баланс, уровень, коллекция, активность.")
+    .addStringOption((o) => o.setName("type").setDescription("Какой рейтинг показать")
+      .addChoices(...Object.values(MODES).map((m) => ({ name: `${m.emoji} ${m.label}`, value: m.key })))
+      .setRequired(false)),
+
   async execute(interaction) {
     if (!interaction.inGuild()) {
       return interaction.reply({ content: "Таблица лидеров доступна только на сервере.", flags: MessageFlags.Ephemeral });
     }
-
-    const rows = getLeaderboard(interaction.guildId, 10);
-    const lines = rows.map((row, index) => {
-      const rank = String(row.current_rank || "NEWBIE").toUpperCase();
-      const voiceHours = (Number(row.voice_seconds) / 3600).toFixed(1);
-      return `**${index + 1}.** <@!${row.user_id}> — ${RANK_EMOJI[rank] || "🌱"} **${rank}**\n↳ ${row.message_count} сообщений · ${row.active_days} активных дней · ${voiceHours} ч. в голосе`;
-    });
-
-    const embed = new EmbedBuilder()
-      .setColor(0x5865f2)
-      .setTitle("🏆 HeradeLegend — таблица лидеров")
-      .setDescription(lines.length ? lines.join("\n\n") : "Пока нет статистики рангов. Активность начнёт учитываться после запуска обновлённой версии бота.")
-      .setFooter({ text: "Рейтинг учитывает ранг, сообщения, активные дни и голосовую активность." });
-
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    await interaction.deferReply();
+    const type = interaction.options.getString("type") || "balance";
+    return interaction.editReply(await ui.payload(interaction.guild, type, 1, interaction.user.id));
   },
 };

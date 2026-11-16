@@ -394,7 +394,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_economy_daily_quests_member ON economy_daily_quests(guild_id, user_id, day_key);
 `);
 
-const itemById = new Map(CATALOG.map((item) => [item.id, item]));
+const { EXCLUSIVE_BADGES } = require("./achievement-defs");
+// Эксклюзивные значки за достижения не продаются: они есть в поиске по id (инвентарь, /equip, карточка профиля), но не в CATALOG.
+const itemById = new Map([...CATALOG, ...EXCLUSIVE_BADGES].map((item) => [item.id, item]));
+const getItem = (itemId) => itemById.get(itemId) || null;
+const SELL_RATE = 0.5;
+const isTradable = (item) => Boolean(item) && !item.exclusive && item.price > 0 && ["title", "badge", "banner", "color"].includes(item.type);
+const sellPrice = (item) => (isTradable(item) ? Math.max(1, Math.floor(item.price * SELL_RATE)) : 0);
 
 const RARITY_ORDER = Object.freeze(["Обычный", "Редкий", "Эпический", "Легендарный", "Мифический"]);
 function getItemRarity(itemOrId) {
@@ -515,6 +521,7 @@ function claimDaily(guildId, userId, now = Date.now()) {
 function buyItem(guildId, userId, itemId, now = Date.now()) {
   const item = itemById.get(itemId);
   if (!item) return { ok: false, reason: "unknown_item" };
+  if (item.exclusive) return { ok: false, reason: "not_for_sale", item, balance: getBalance(guildId, userId).balance };
   const run = db.transaction(() => {
     if (db.prepare("SELECT 1 FROM economy_inventory WHERE guild_id=? AND user_id=? AND item_id=?").get(guildId,userId,itemId)) {
       return { ok: false, reason: "already_owned", item, balance: getBalance(guildId,userId).balance };
@@ -650,4 +657,4 @@ function getTransactions(guildId, userId, limit = 10) {
   return db.prepare("SELECT amount,kind,details,created_at FROM economy_transactions WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT ?")
     .all(guildId,userId,Math.min(25,Math.max(1,limit)));
 }
-module.exports = { creditCoins, CASINO_MIN_BET, CASINO_MAX_BET, settleCasinoBet, getCasinoStats, DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };
+module.exports = { getItem, isTradable, sellPrice, SELL_RATE, creditCoins, CASINO_MIN_BET, CASINO_MAX_BET, settleCasinoBet, getCasinoStats, DAILY_REWARD, DAILY_COOLDOWN_MS, DAILY_QUESTS, CATALOG, RARITY_ORDER, getItemRarity, TRANSFER_FEE_PERCENT, MAX_TRANSFER_AMOUNT, getBalance, claimDaily, buyItem, getInventory, getCustomProfile, equipItem, removeEquipped, adjustBalance, transferCoins, getTransactions, getDailyQuests, recordQuestProgress, moscowDayKey };

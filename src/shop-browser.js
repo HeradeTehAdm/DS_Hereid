@@ -393,15 +393,16 @@ async function handle(interaction) {
     if (action === "buy") {
       const r = buyItem(guildId, userId, itemId);
       note = r.ok ? `✅ Куплено! Остаток: **${money(r.balance)}** 🪙${r.questReward ? ` · бонус за задание +${r.questReward}` : ""}`
-        : `❌ ${({ already_owned: "Этот предмет уже у тебя.", insufficient_funds: "Недостаточно монет.", unknown_item: "Такого предмета нет." })[r.reason] || "Покупка не выполнена."}`;
+        : `❌ ${({ already_owned: "Этот предмет уже у тебя.", insufficient_funds: "Недостаточно монет.", unknown_item: "Такого предмета нет.", not_for_sale: "Этот значок выдаётся только за достижение." })[r.reason] || "Покупка не выполнена."}`;
     } else {
       const r = equipItem(guildId, userId, itemId);
       note = r.ok ? "✅ Надето! Проверь результат в `/profile`." : "❌ Сначала купи этот предмет.";
     }
     await interaction.update(detailPayload(guildId, userId, itemId, s.mode, s.rarity, s.page, note));
+    if (action === "buy" && note.startsWith("✅") && interaction.guild) await require("./achievement-notify").refreshAchievements(interaction.guild, interaction.user);
     return;
   }
   await interaction.reply({ content: "⚠️ Это действие больше недоступно. Открой магазин заново: /shop.", flags: MessageFlags.Ephemeral });
 }
 
-module.exports = { preload, openBrowser, handle, listItems, renderSheet, renderDetail, listPayload, detailPayload, MODES, PREFIX };
+module.exports = { preload, openBrowser, handle, listItems, renderSheet, renderDetail, listPayload, detailPayload, MODES, PREFIX, paintSwatch, paintBanner, bannerImage, shortName, fit, background, RARITY_COLOR };

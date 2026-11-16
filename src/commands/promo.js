@@ -53,6 +53,7 @@ module.exports = {
     const embed = new EmbedBuilder().setColor(0x57F287).setTitle("🎟️ Промокод активирован!")
       .setDescription([`Код **${result.code}** принёс тебе **+${money(result.coins)}** 🪙`, `Твой баланс: **${money(result.balance)}** 🪙`].join("\n"))
       .setFooter({ text: "Следи за новыми промокодами на сервере" });
-    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    return require("../achievement-notify").refreshAchievements(interaction.guild, interaction.user);
   },
 };

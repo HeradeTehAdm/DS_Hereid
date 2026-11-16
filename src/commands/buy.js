@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { buyItem } = require("../economy");
 const { economyDisabled } = require("../economy-access");
+const { refreshAchievements } = require("../achievement-notify");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,6 +17,7 @@ module.exports = {
       already_owned: "Этот предмет уже есть в твоём инвентаре.",
       insufficient_funds: "Недостаточно монет для покупки.",
       unknown_item: "Такого предмета нет в каталоге. Скопируй ID из команды /shop.",
+      not_for_sale: "Этот значок нельзя купить: он выдаётся только за достижение. Смотри /achievements.",
     };
     const description = result.ok
       ? `Куплено: **${result.item.name}** за **${result.item.price}** монет.${result.questReward ? `\nБонус за задание: **+${result.questReward}** монет.` : ""}\nОстаток: **${result.balance.toLocaleString("ru-RU")}** монет.\n\nПрименить предмет можно командой /equip с его ID.`
@@ -24,5 +26,6 @@ module.exports = {
       .setTitle(result.ok ? "✅ Покупка успешна" : "❌ Не удалось купить")
       .setDescription(description);
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    if (result.ok) await refreshAchievements(interaction.guild, interaction.user);
   },
 };

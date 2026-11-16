@@ -24,5 +24,6 @@ module.exports = {
       .setTitle(result.claimed ? "🎁 Ежедневная награда" : "⏳ Награда уже получена")
       .setDescription(description);
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    if (result.claimed) await require("../achievement-notify").refreshAchievements(interaction.guild, interaction.user);
   },
 };

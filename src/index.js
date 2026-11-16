@@ -11,6 +11,10 @@ const { isFeatureEnabled } = require("./features");
 const { addMessageXp } = require("./member-profile");
 const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateGuild } = require("./rank-system");
 const { evaluateAchievements } = require("./achievements");
+const { notifyAchievementUnlocks } = require("./achievement-notify");
+const tradeUi = require("./trade-ui");
+const leaderboardUi = require("./leaderboard-ui");
+const achievementsUi = require("./achievements-ui");
 const { recordQuestProgress } = require("./economy");
 const reports = require("./commands/report");
 const shopBrowser = require("./shop-browser");
@@ -34,28 +38,6 @@ const client = new Client({
 client.config = config;
 client.logger = logger;
 client.commands = new Collection();
-
-async function notifyAchievementUnlocks(user, guild, achievements) {
-  if (!achievements?.length) return;
-  for (const achievement of achievements) {
-    logger.info(`Achievement unlocked: guild=${guild.id} user=${user.id} achievement=${achievement.id}`);
-  }
-
-  const lines = achievements.map((achievement) =>
-    `${achievement.emoji} **${achievement.name}** — ${achievement.description}`,
-  );
-  const message = [
-    `🏅 **Новые достижения в HeradeLegend — ${guild.name}!**`,
-    "",
-    ...lines,
-    "",
-    "Посмотреть всю коллекцию можно командой `/achievements`.",
-  ].join("\n");
-
-  await user.send({ content: message }).catch((error) => {
-    logger.debug(`Could not DM achievement notification to ${user.id}: ${error.message || error}`);
-  });
-}
 
 function loadCommands() {
   const commandsDir = path.join(__dirname, "commands");
@@ -128,6 +110,12 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
+    if (interaction.isAutocomplete()) {
+      const command = client.commands.get(interaction.commandName);
+      if (command?.autocomplete) await command.autocomplete(interaction);
+      else await interaction.respond([]);
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
@@ -154,6 +142,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith("cas:")) {
       await casino.handle(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId?.startsWith("tr:")) {
+      await tradeUi.handle(interaction);
+      return;
+    }
+
+    if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith("lb:")) {
+      await leaderboardUi.handle(interaction);
+      return;
+    }
+
+    if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith("ach:")) {
+      await achievementsUi.handle(interaction);
       return;
     }
 

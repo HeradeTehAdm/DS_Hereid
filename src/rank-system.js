@@ -224,7 +224,7 @@ async function evaluateGuild(guild, logger) {
   }
 }
 
-function getLeaderboard(guildId, limit = 10) {
+function getLeaderboard(guildId, limit = 10, maxLimit = 25) {
   return db.prepare(`
     SELECT user_id, message_count, active_days, voice_seconds, current_rank, joined_at
     FROM member_rank_activity WHERE guild_id=?
@@ -235,7 +235,7 @@ function getLeaderboard(guildId, limit = 10) {
         ELSE 0 END DESC,
       message_count DESC, active_days DESC, voice_seconds DESC
     LIMIT ?
-  `).all(guildId, Math.max(1, Math.min(25, limit)));
+  `).all(guildId, Math.max(1, Math.min(maxLimit, limit)));
 }
 
 module.exports = { RANKS, ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateGuild, getLeaderboard, snapshot, rankIndexFor };

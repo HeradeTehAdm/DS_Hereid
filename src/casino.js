@@ -192,6 +192,7 @@ async function play(interaction, game, bet, choice) {
       const image = art.renderRoulette(outcome.number, { title: outcome.won ? "Выигрыш!" : "Мимо", sub: [`Выпало ${outcome.number} · ${COLOR_TEXT[outcome.color]}`, `Твоя ставка: ${COLOR_TEXT[choice]}`], color: outcome.won ? "#7dffb8" : "#ff8a8a" });
       await interaction.editReply(buildPayload(guildId, userId, { game, bet, note, image, color }));
     }
+    if (interaction.guild) await require("./achievement-notify").refreshAchievements(interaction.guild, interaction.user);
   } finally {
     busy.delete(key);
   }
