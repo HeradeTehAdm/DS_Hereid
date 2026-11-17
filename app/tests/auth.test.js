@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { seal, unseal, sessionFromRequest, configuration } from "../api/_auth.js";
+import { seal, unseal, sessionFromRequest, configuration } from "../lib/auth.js";
 
 const secret = "a".repeat(48);
 test("encrypted cookie round-trip", () => {
