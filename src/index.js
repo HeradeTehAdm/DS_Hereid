@@ -7,6 +7,7 @@ const config = require("./config");
 const logger = require("./logger");
 const db = require("./database");
 const { startMinecraftApi } = require("./minecraft-api");
+const { startSpiritProfileApi } = require("./spirit-profile-api");
 const { isFeatureEnabled } = require("./features");
 const { addMessageXp } = require("./member-profile");
 const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateGuild } = require("./rank-system");
@@ -78,6 +79,7 @@ function loadCommands() {
 loadCommands();
 const adminPanel = client.commands.get("admin");
 const minecraftApi = startMinecraftApi({ db, config, logger });
+const spiritProfileApi = startSpiritProfileApi({ db, config, logger });
 minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to start; Minecraft login verification will remain unavailable.", error));
 
 client.once(Events.ClientReady, async (readyClient) => {
@@ -326,6 +328,7 @@ async function shutdown(signal) {
   try {
     stopAutomationScheduler();
     await minecraftApi.close();
+    await spiritProfileApi.close();
     client.destroy();
     if (db.open) db.close();
     logger.info("Discord client and database closed.");
