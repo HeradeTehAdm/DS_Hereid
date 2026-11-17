@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { configuration, json, seal, setCookie, redirect, STATE_COOKIE, STATE_AGE } from "../_auth.js";
+import { configuration, json, seal, setCookie, redirect, STATE_COOKIE, STATE_AGE } from "../../lib/auth.js";
 
 export default function handler(req, res) {
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
