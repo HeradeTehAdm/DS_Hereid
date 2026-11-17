@@ -211,7 +211,7 @@ module.exports = {
         try {
           const published = await spiritApp.publishInvite({
             guild: interaction.guild, channelId: selected.channelId,
-            actorId: interaction.user.id, url: process.env.SPIRIT_APP_URL,
+            actorId: interaction.user.id, url: process.env.SPIRIT_APP_URL || "https://duh-svobody-app.vercel.app",
           });
           audit(interaction.guildId, interaction.user.id, "spirit_app_invite_published", published.channelId, published.messageId);
           interaction.client._appPublishSelection.delete(key);
