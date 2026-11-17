@@ -1,0 +1,44 @@
+name: Spirit App checks
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "src/spirit-app.js"
+      - "src/commands/admin.js"
+      - "scripts/test-spirit-app.js"
+      - ".github/workflows/spirit-app.yml"
+  push:
+    paths:
+      - "app/**"
+      - "src/spirit-app.js"
+      - "src/commands/admin.js"
+      - "scripts/test-spirit-app.js"
+      - ".github/workflows/spirit-app.yml"
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - run: npm run test
+      - run: npm run build
+  bot-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node --check src/commands/admin.js
+      - run: node --check src/spirit-app.js
+      - run: node scripts/test-spirit-app.js
