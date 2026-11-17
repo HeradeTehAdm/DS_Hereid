@@ -1,0 +1,19 @@
+{
+  "name": "heradetale-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node --check src/main.js && node --check src/game.js && node --check src/scenes/BootScene.js && node --check src/scenes/MenuScene.js && node --check src/scenes/IntroScene.js && node --check src/scenes/RoomScene.js && node --check src/scenes/BattleScene.js && node --check src/save.js && node --check tests/save.test.js && node --check src/content/world.js && node --check tests/world.test.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^6.4.1"
+  }
+}
