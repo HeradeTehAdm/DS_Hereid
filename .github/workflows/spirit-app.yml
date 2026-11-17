@@ -41,4 +41,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: node --check src/commands/admin.js
       - run: node --check src/spirit-app.js
+      - run: node --check src/spirit-profile-api.js
       - run: node scripts/test-spirit-app.js
+      - run: node scripts/test-spirit-profile-api.js
