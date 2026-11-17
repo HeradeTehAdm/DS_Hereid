@@ -1,4 +1,4 @@
-import { json, sessionFromRequest } from "./_auth.js";
+import { json, sessionFromRequest } from "../lib/auth.js";
 
 export default function handler(req, res) {
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
