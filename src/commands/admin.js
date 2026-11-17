@@ -211,7 +211,7 @@ module.exports = {
         try {
           const published = await spiritApp.publishInvite({
             guild: interaction.guild, channelId: selected.channelId,
-            actorId: interaction.user.id, url: process.env.SPIRIT_APP_URL || "https://duh-svobody-app.vercel.app",
+            actorId: interaction.user.id, url: spiritApp.configuredAppUrl(),
           });
           audit(interaction.guildId, interaction.user.id, "spirit_app_invite_published", published.channelId, published.messageId);
           interaction.client._appPublishSelection.delete(key);
@@ -297,7 +297,7 @@ module.exports = {
         return true;
       }
       if (section === "app") {
-        const url = spiritApp.appUrl(process.env.SPIRIT_APP_URL || "https://duh-svobody-app.vercel.app");
+        const url = spiritApp.configuredAppUrl();
         const embed = new EmbedBuilder().setColor(0x9b72f8).setTitle("🕊️ Дух Свободы • App")
           .setDescription("Выбери текстовый канал, затем опубликуй приглашение в приложение. Бот проверит права перед отправкой.\n\n" +
             (url ? "🔗 Адрес приложения настроен." : "⚠️ Проверь URL приложения в настройках."));
