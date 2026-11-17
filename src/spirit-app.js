@@ -10,6 +10,12 @@ function appUrl(value) {
   } catch { return null; }
 }
 
+const DEFAULT_APP_URL = "https://duh-svobody-app.vercel.app";
+
+function configuredAppUrl(value = process.env.SPIRIT_APP_URL) {
+  return appUrl(value || DEFAULT_APP_URL);
+}
+
 function inviteEmbed(guildName) {
   return new EmbedBuilder()
     .setColor(0x8b5cf6)
@@ -42,4 +48,4 @@ async function publishInvite({ guild, channelId, actorId, url }) {
   return { messageId: sent.id, channelId: channel.id, actorId, url: sent.url };
 }
 
-module.exports = { appUrl, inviteEmbed, inviteComponents, canPublish, publishInvite };
+module.exports = { appUrl, configuredAppUrl, inviteEmbed, inviteComponents, canPublish, publishInvite };
