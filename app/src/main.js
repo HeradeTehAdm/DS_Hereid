@@ -43,12 +43,23 @@ if (!session?.profile) return '<div class="profile-card"><div class="profile-ava
   const base = 100 * level * level;
   const span = 100 * ((level + 1) ** 2 - level ** 2);
   const progress = Math.max(0, Math.min(100, (xp - base) / span * 100));
-  return '<div class="profile-card"><div class="profile-avatar">' + safe((p.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">ПРОФИЛЬ УЧАСТНИКА</span><h2>' + safe(p.displayName || "Участник") + '</h2><p>' + safe(p.title || "Участник сообщества") + '</p></div></div><div class="stat-grid"><div class="stat"><span>УРОВЕНЬ</span><strong>' + num(level) + '</strong></div><div class="stat"><span>ОПЫТ</span><strong>' + num(xp) + ' XP</strong></div><div class="stat"><span>МОНЕТЫ</span><strong>' + num(p.balance) + '</strong></div></div><div class="progress-label"><span>До следующего уровня</span><span>' + Math.round(progress) + '%</span></div><div class="progress"><span style="width:' + progress + '%"></span></div>';
+  return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">ПРОФИЛЬ УЧАСТНИКА</span><h2>' + safe(session.identity.displayName || "Участник") + '</h2><p>' + safe(p.title || "Участник сообщества") + '</p></div></div><div class="stat-grid"><div class="stat"><span>УРОВЕНЬ</span><strong>' + num(level) + '</strong></div><div class="stat"><span>ОПЫТ</span><strong>' + num(xp) + ' XP</strong></div><div class="stat"><span>МОНЕТЫ</span><strong>' + num(p.balance) + '</strong></div></div><div class="progress-label"><span>До следующего уровня</span><span>' + Math.round(progress) + '%</span></div><div class="progress"><span style="width:' + progress + '%"></span></div>';
 }
 
 function content() {
   if (current === "profile") return '<section class="heading"><span class="eyebrow">МОЙ МИР</span><h1>Профиль <em>участника</em></h1><p>Твоя история и достижения в одном месте.</p></section>' + profileContent();
-  if (current === "achievements") return '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section><div class="empty"><div class="empty-symbol">' + svg("trophy", 40) + '</div><h3>Достижения скоро появятся</h3><p>Они будут синхронизироваться с наградами Discord-бота.</p><span class="tag">В разработке</span></div>';
+  if (current === "achievements") {
+    const heading = '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section>';
+    if (!session?.identity) return heading + '<div class="empty"><h3>Войди через Discord</h3><p>Авторизуйся, чтобы открыть свои награды.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord</a></div>';
+    if (!session?.profile) return heading + '<div class="empty"><h3>Синхронизация пока недоступна</h3><p>Подключение к профилю бота ещё не настроено или временно не отвечает.</p></div>';
+    const awards = session.profile.achievements || [];
+    if (!awards.length) return heading + '<div class="empty"><h3>Пока нет достижений</h3><p>Новые награды появятся здесь, когда бот их выдаст.</p></div>';
+    return heading + '<div class="feature-grid">' + awards.map(a =>
+      '<div class="feature"><span class="feature-icon purple">' + safe(a.badge) + '</span><strong>' +
+      safe(a.name) + '</strong><small>' + safe(a.description) + '</small><span class="tag">' +
+      safe(a.rarity) + '</span></div>'
+    ).join("") + '</div>';
+  }
   return '<section class="hero"><div class="halo"></div><span class="eyebrow">WELCOME TO YOUR SPACE</span><div class="hero-icon">' + svg("bird", 54) + '</div><h1>ДУХ<br><em>СВОБОДЫ</em></h1><p>Одно сообщество. Тысячи возможностей.<br>Твоя история начинается здесь.</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 20) + '</button><span class="hero-foot">✦ MADE FOR THE COMMUNITY ✦</span></section><div class="section-title"><h2>Исследуй мир</h2><span>01 / 03</span></div><div class="feature-grid"><button class="feature" data-go="profile"><span class="feature-icon purple">' + svg("user", 29) + '</span><strong>Мой профиль</strong><small>Твой уровень, опыт и стиль</small><span class="feature-next">' + svg("arrow", 19) + '</span></button><button class="feature" data-go="achievements"><span class="feature-icon blue">' + svg("trophy", 29) + '</span><strong>Достижения</strong><small>Коллекция твоих побед</small><span class="feature-next">' + svg("arrow", 19) + '</span></button></div>';
 }
 
