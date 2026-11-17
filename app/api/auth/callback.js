@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { configuration, json, unseal, readCookie, setCookies, redirect, SESSION_COOKIE, STATE_COOKIE, MAX_SESSION_AGE } from "../_auth.js";
+import { configuration, json, seal, unseal, readCookie, setCookies, redirect, SESSION_COOKIE, STATE_COOKIE, MAX_SESSION_AGE } from "../_auth.js";
 
 function matches(a, b) {
   if (typeof a !== "string" || typeof b !== "string") return false;
