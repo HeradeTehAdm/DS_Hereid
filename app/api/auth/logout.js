@@ -1,4 +1,4 @@
-import { json, setCookies, SESSION_COOKIE, STATE_COOKIE } from "../_auth.js";
+import { json, setCookies, SESSION_COOKIE, STATE_COOKIE } from "../../lib/auth.js";
 
 export default function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
