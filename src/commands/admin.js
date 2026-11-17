@@ -1,11 +1,12 @@
 const {
   SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags, EmbedBuilder,
   ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder,
-  ModalBuilder, TextInputBuilder, TextInputStyle,
+  ModalBuilder, TextInputBuilder, TextInputStyle, ChannelSelectMenuBuilder,
 } = require("discord.js");
 const db = require("../database");
 const { FEATURES, isFeatureEnabled, setFeatureEnabled, listFeatures } = require("../features");
 const promos = require("../promo");
+const spiritApp = require("../spirit-app");
 
 const SECTIONS = {
   users: ["👥 Участники", "Просмотр профилей и статистики участников."],
@@ -16,6 +17,7 @@ const SECTIONS = {
   logs: ["📜 Журнал аудита", "Последние действия администраторов."],
   features: ["🧩 Функции бота", "Состояние и включение обычных функций."],
   promo: ["🎟️ Промокоды", "Создание промокодов на монеты с лимитом участников."],
+  app: ["🕊️ Spirit App", "Настройка канала для публикации ссылки на приложение."],
 };
 
 function audit(guildId, actorId, action, targetId = null, details = "") {
@@ -85,6 +87,7 @@ function mainRows() {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("ha:features").setLabel("Функции бота").setEmoji("🧩").setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId("ha:promo").setLabel("Промокоды").setEmoji("🎟️").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId("ha:app").setLabel("Spirit App").setEmoji("🕊️").setStyle(ButtonStyle.Secondary),
     ),
   ];
 }
@@ -185,6 +188,42 @@ module.exports = {
       else await interaction.reply(payload);
       return true;
     }
+    if (id.startsWith("ha:app:")) {
+      if (!allowed(interaction, "app")) {
+        await interaction.reply({ content: "⛔ Нет доступа к Spirit App.", flags: MessageFlags.Ephemeral });
+        return true;
+      }
+      const key = `${interaction.guildId}:${interaction.user.id}`;
+      if (id === "ha:app:channel" && interaction.isChannelSelectMenu()) {
+        const channelId = interaction.values?.[0];
+        interaction.client._appPublishSelection ||= new Map();
+        interaction.client._appPublishSelection.set(key, { channelId, expires: Date.now() + 300000 });
+        await interaction.reply({ content: `✅ Выбран канал <#${channelId}>. Теперь нажми «Опубликовать приглашение» в панели. Выбор действует 5 минут.`, flags: MessageFlags.Ephemeral });
+        return true;
+      }
+      if (id === "ha:app:publish" && interaction.isButton()) {
+        const selected = interaction.client._appPublishSelection?.get(key);
+        if (!selected || selected.expires < Date.now()) {
+          await interaction.reply({ content: "Сначала выбери канал в панели Spirit App. Выбор действует 5 минут.", flags: MessageFlags.Ephemeral });
+          return true;
+        }
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        try {
+          const published = await spiritApp.publishInvite({
+            guild: interaction.guild, channelId: selected.channelId,
+            actorId: interaction.user.id, url: process.env.SPIRIT_APP_URL,
+          });
+          audit(interaction.guildId, interaction.user.id, "spirit_app_invite_published", published.channelId, published.messageId);
+          interaction.client._appPublishSelection.delete(key);
+          await interaction.editReply({ content: `✅ Приглашение опубликовано в <#${published.channelId}>: ${published.url}` });
+        } catch (error) {
+          await interaction.editReply({ content: `⚠️ Не удалось опубликовать: ${error.message}` });
+        }
+        return true;
+      }
+      await interaction.reply({ content: "Действие устарело. Открой /admin.", flags: MessageFlags.Ephemeral });
+      return true;
+    }
     // Acknowledge obsolete controls in already-sent admin panel messages.
     if (id.startsWith("ha:music")) {
       await interaction.reply({ content: "Музыкальный плеер удалён из HeradeLegend.", flags: MessageFlags.Ephemeral });
@@ -257,6 +296,21 @@ module.exports = {
         });
         return true;
       }
+      if (section === "app") {
+        const url = spiritApp.appUrl(process.env.SPIRIT_APP_URL);
+        const embed = new EmbedBuilder().setColor(0x9b72f8).setTitle("🕊️ Дух Свободы • App")
+          .setDescription("Выбери текстовый канал, затем опубликуй приглашение в приложение. Бот проверит права перед отправкой.\n\n" +
+            (url ? "🔗 Адрес приложения настроен." : "⚠️ SPIRIT_APP_URL пока не настроен — публикация недоступна."));
+        const picker = new ChannelSelectMenuBuilder().setCustomId("ha:app:channel")
+          .setPlaceholder("Выбери текстовый канал").addChannelTypes(ChannelType.GuildText);
+        await interaction.reply({ embeds: [embed], components: [
+          new ActionRowBuilder().addComponents(picker),
+          new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ha:app:publish")
+            .setLabel("Опубликовать приглашение").setStyle(ButtonStyle.Success).setDisabled(!url)),
+          backRow(),
+        ], flags: MessageFlags.Ephemeral });
+        return true;
+      }
       if (section === "promo") {
         await interaction.reply({ ...promoPanel(interaction.guildId), flags: MessageFlags.Ephemeral });
         return true;
@@ -292,7 +346,7 @@ module.exports = {
           new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("ha:roles:select").setPlaceholder("Выбери роль").addOptions(options)),
           new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("ha:roles:section").setPlaceholder("Раздел доступа").addOptions(
             {label:"Вся панель",value:"all"},{label:"Участники",value:"users"},{label:"Модерация",value:"moderation"},
-{label:"Настройки",value:"settings"},{label:"Статистика",value:"stats"},{label:"Аудит",value:"logs"},{label:"Функции бота",value:"features"},{label:"Промокоды",value:"promo"}
+{label:"Настройки",value:"settings"},{label:"Spirit App",value:"app"},{label:"Статистика",value:"stats"},{label:"Аудит",value:"logs"},{label:"Функции бота",value:"features"},{label:"Промокоды",value:"promo"}
           )),
           new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId("ha:roles:grant").setLabel("Выдать доступ").setStyle(ButtonStyle.Success),
