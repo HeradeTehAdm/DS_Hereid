@@ -1,8 +1,11 @@
 const assert = require("node:assert/strict");
-const { appUrl, inviteEmbed, inviteComponents, canPublish } = require("../src/spirit-app");
+const { appUrl, configuredAppUrl, inviteEmbed, inviteComponents, canPublish } = require("../src/spirit-app");
 const { PermissionFlagsBits } = require("discord.js");
 
 assert.equal(appUrl("https://spirit.example.com"), "https://spirit.example.com/");
+assert.equal(configuredAppUrl(""), "https://duh-svobody-app.vercel.app/");
+assert.equal(configuredAppUrl("https://custom.example.com/path"), "https://custom.example.com/path");
+assert.equal(configuredAppUrl("http://unsafe.example.com"), null);
 for (const value of ["http://spirit.example.com", "javascript:alert(1)", "https://user:pass@example.com", "https://localhost", "https://example.com/#secret"]) {
   assert.equal(appUrl(value), null, value);
 }
