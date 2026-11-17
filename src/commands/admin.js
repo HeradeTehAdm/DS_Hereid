@@ -297,10 +297,10 @@ module.exports = {
         return true;
       }
       if (section === "app") {
-        const url = spiritApp.appUrl(process.env.SPIRIT_APP_URL);
+        const url = spiritApp.appUrl(process.env.SPIRIT_APP_URL || "https://duh-svobody-app.vercel.app");
         const embed = new EmbedBuilder().setColor(0x9b72f8).setTitle("🕊️ Дух Свободы • App")
           .setDescription("Выбери текстовый канал, затем опубликуй приглашение в приложение. Бот проверит права перед отправкой.\n\n" +
-            (url ? "🔗 Адрес приложения настроен." : "⚠️ SPIRIT_APP_URL пока не настроен — публикация недоступна."));
+            (url ? "🔗 Адрес приложения настроен." : "⚠️ Проверь URL приложения в настройках."));
         const picker = new ChannelSelectMenuBuilder().setCustomId("ha:app:channel")
           .setPlaceholder("Выбери текстовый канал").addChannelTypes(ChannelType.GuildText);
         await interaction.reply({ embeds: [embed], components: [
