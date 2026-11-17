@@ -1,0 +1,45 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+
+function appUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || url.hash) return null;
+    if (url.hostname === "localhost" || url.hostname.endsWith(".localhost")) return null;
+    return url.toString();
+  } catch { return null; }
+}
+
+function inviteEmbed(guildName) {
+  return new EmbedBuilder()
+    .setColor(0x8b5cf6)
+    .setTitle("🕊️ ДУХ СВОБОДЫ • APP")
+    .setDescription("Твоё пространство внутри сообщества. Открой приложение, чтобы посмотреть профиль, прогресс и новые возможности.\n\n✨ **Профиль** — ник, аватар, уровень и XP\n🏆 **Достижения** — твои награды\n🎨 **Стиль** — персональное оформление\n\nФункции добавляются постепенно.")
+    .setFooter({ text: guildName + " • Spirit of Freedom" });
+}
+
+function inviteComponents(url) {
+  return [new ActionRowBuilder().addComponents(new ButtonBuilder()
+    .setStyle(ButtonStyle.Link).setLabel("Открыть приложение").setEmoji("🚀").setURL(url))];
+}
+
+function canPublish(channel, botMember) {
+  if (!channel || !channel.isTextBased?.() || !channel.send || channel.isDMBased?.()) return false;
+  const permissions = channel.permissionsFor(botMember);
+  return Boolean(permissions?.has(PermissionFlagsBits.ViewChannel) &&
+    permissions?.has(PermissionFlagsBits.SendMessages) &&
+    permissions?.has(PermissionFlagsBits.EmbedLinks));
+}
+
+async function publishInvite({ guild, channelId, actorId, url }) {
+  const cleanUrl = appUrl(url);
+  if (!cleanUrl) throw new Error("Укажи корректный HTTPS-адрес приложения в SPIRIT_APP_URL.");
+  if (!/^\d{17,20}$/.test(String(channelId))) throw new Error("Некорректный ID канала.");
+  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  const me = guild.members.me || await guild.members.fetchMe();
+  if (!canPublish(channel, me)) throw new Error("Нет доступа к текстовому каналу или прав на отправку сообщений и Embed Links.");
+  const sent = await channel.send({ embeds: [inviteEmbed(guild.name)], components: inviteComponents(cleanUrl), allowedMentions: { parse: [] } });
+  return { messageId: sent.id, channelId: channel.id, actorId, url: sent.url };
+}
+
+module.exports = { appUrl, inviteEmbed, inviteComponents, canPublish, publishInvite };
