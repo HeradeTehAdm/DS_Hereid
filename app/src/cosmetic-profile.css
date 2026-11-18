@@ -69,3 +69,15 @@
 @media(max-width:1180px){.cos-layout{grid-template-columns:1fr}.cos-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cos-summary h3{grid-column:1/-1}.cos-summary-row{margin-top:0}.cos-item-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:750px){.cos-banner{min-height:164px}.cos-banner-caption{padding:22px 19px}.cos-identity-inner{padding:0 13px 18px}.cos-userline{gap:15px}.cos-avatar{width:77px;height:77px}.cos-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cos-stat{padding:11px 8px}.cos-galleries{grid-template-columns:1fr}.cos-item-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.cos-summary{grid-template-columns:1fr 1fr}.cos-summary-row>.cos-rarity{display:none}.cos-banner-caption h1{font-size:23px}}
 @media(max-width:390px){.cos-item-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cos-summary{grid-template-columns:1fr}.cos-xp>div:first-child{font-size:10px}.cos-stat strong{font-size:13px}}
+
+/* Exact banner art is shown without synthetic orbit effects. */
+.cos-banner-art.cos-original:before,
+.cos-banner-art.cos-original:after,
+.cos-banner-art.cos-original .cos-orbit,
+.cos-banner-art.cos-original .cos-stars{display:none}
+.cos-item{display:flex;flex-direction:column}
+.cos-item-bottom{flex:1}
+.cos-equip-button{font:inherit;font-weight:800;font-size:10px;color:#fff;border-radius:10px;border:1px solid #d479f3;background:linear-gradient(120deg,#7233aa,#3e2f82);padding:8px 6px;width:100%;margin-top:8px;transition:filter .15s}
+.cos-equip-button:hover{filter:brightness(1.2)}
+.cos-equip-button:disabled{opacity:.5;cursor:progress}
+.cos-toast{margin:10px 0 18px;border:1px solid #a968e3;border-radius:12px;background:#291b44;color:#f3eaff;padding:13px 17px;font-size:12px;font-weight:700;box-shadow:0 0 20px #8c3bf033}
