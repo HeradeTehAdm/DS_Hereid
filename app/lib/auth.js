@@ -96,4 +96,19 @@ export function sessionFromRequest(req) {
   return session;
 }
 
+export function activitySessionFromRequest(req) {
+  const config = configuration();
+  if (!config) return null;
+  const header = req.headers.authorization;
+  if (typeof header !== "string" || !/^Bearer [A-Za-z0-9_-]{30,8192}$/.test(header)) return null;
+  const session = unseal(header.slice(7), config.sessionSecret);
+  const now = Date.now();
+  if (!session || session.purpose !== "discord_activity" || session.aud !== config.clientId ||
+      !Number.isSafeInteger(session.iat) || !Number.isSafeInteger(session.exp) ||
+      session.iat > now || session.exp <= now || session.exp - session.iat > 60 * 60 * 1000 ||
+      !/^\d{17,20}$/.test(String(session.id)) ||
+      typeof session.username !== "string" || session.username.length > 64) return null;
+  return session;
+}
+
 export { SESSION_COOKIE, STATE_COOKIE, MAX_SESSION_AGE, STATE_AGE };

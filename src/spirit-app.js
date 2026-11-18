@@ -20,13 +20,13 @@ function inviteEmbed(guildName) {
   return new EmbedBuilder()
     .setColor(0x8b5cf6)
     .setTitle("🕊️ ДУХ СВОБОДЫ • APP")
-    .setDescription("Твоё пространство внутри сообщества. Открой приложение, чтобы посмотреть профиль, прогресс и новые возможности.\n\n✨ **Профиль** — ник, аватар, уровень и XP\n🏆 **Достижения** — твои награды\n🎨 **Стиль** — персональное оформление\n\nФункции добавляются постепенно.")
+    .setDescription("Твоё пространство внутри Discord! Открой **App Launcher** рядом со строкой сообщений, найди **Дух Свободы** и нажми **Launch**, чтобы запустить Activity без перехода в браузер.\n\n✨ **Профиль** — ник, аватар, уровень и XP\n🏆 **Достижения** — твои награды\n🎨 **Стиль** — персональное оформление\n\nФункции добавляются постепенно.")
     .setFooter({ text: guildName + " • Spirit of Freedom" });
 }
 
 function inviteComponents(url) {
   return [new ActionRowBuilder().addComponents(new ButtonBuilder()
-    .setStyle(ButtonStyle.Link).setLabel("Открыть приложение").setEmoji("🚀").setURL(url))];
+    .setStyle(ButtonStyle.Link).setLabel("Открыть сайт (резервно)").setEmoji("🚀").setURL(url))];
 }
 
 function canPublish(channel, botMember) {

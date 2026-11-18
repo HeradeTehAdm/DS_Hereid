@@ -1,10 +1,11 @@
-import { json, sessionFromRequest } from "../lib/auth.js";
+import { json, sessionFromRequest, activitySessionFromRequest } from "../lib/auth.js";
 import { loadVerifiedProfile, profileConfig } from "../lib/profile.js";
 import { getCachedOrRequest } from "../lib/sync-store.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
-  const session = sessionFromRequest(req);
+  // A bearer token, when supplied, must validate independently; never fall back to cookies.
+  const session = req.headers.authorization ? activitySessionFromRequest(req) : sessionFromRequest(req);
   if (!session) return json(res, 401, { error: "Login required" });
   let profile = null;
   let sync = "not_configured";
