@@ -33,11 +33,24 @@ function inviteComponents() {
     .setLabel("🚀 Открыть в Discord"))];
 }
 
-async function handleLaunchButton(interaction) {
+async function handleLaunchButton(interaction, logger = console) {
   if (!interaction.isButton?.() || interaction.customId !== ACTIVITY_LAUNCH_ID) return false;
   // Discord must acknowledge this button with callback type LAUNCH_ACTIVITY (12).
-  // Never defer/reply before launching, and never pass users a browser URL.
-  await interaction.launchActivity();
+  // Do not defer/reply before launching or try a second acknowledgement if
+  // Discord rejects the callback; that can cause Unknown interaction (10062).
+  try {
+    await interaction.launchActivity();
+  } catch (error) {
+    if (error?.code === 50013) {
+      logger.warn("Discord denied Spirit Activity launch (50013). Check Activities enabled in Developer Portal and Use Activities permissions for the member and channel.");
+      return true;
+    }
+    if (error?.code === 10062) {
+      logger.warn("Spirit Activity launch interaction expired (10062). Try clicking the button again.");
+      return true;
+    }
+    throw error;
+  }
   return true;
 }
 

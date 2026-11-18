@@ -146,7 +146,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (interaction.isButton() && interaction.customId === spiritApp.ACTIVITY_LAUNCH_ID) {
-      await spiritApp.handleLaunchButton(interaction);
+      await spiritApp.handleLaunchButton(interaction, logger);
       return;
     }
 
