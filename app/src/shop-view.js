@@ -42,8 +42,9 @@ export function renderShopResults(profile, options={}) {
     const owned = itemIsOwned(profile,item);
     const equipped = itemIsEquipped(profile,item);
     const canAfford = Number(profile?.balance||0) >= Number(item.price||0);
-    const label = equipped ? "✓ Экипировано" : owned ? "Экипировать" : canAfford ? "Купить в Discord" : "Недостаточно монет";
+    const label = equipped ? "✓ Экипировано" : owned ? "Экипировать" : canAfford ? "Купить" : "Недостаточно монет";
     const action = owned && !equipped ? '<button class="sf-action sf-action-equip" data-equip-id="'+escape(item.id)+'" type="button">Экипировать</button>' :
+      !owned && canAfford ? '<button class="sf-action sf-action-buy" data-buy-id="'+escape(item.id)+'" data-buy-price="'+item.price+'" type="button">Купить</button>' :
       '<span class="sf-action sf-action-static '+(equipped?"sf-action-equipped":"")+'">'+escape(label)+'</span>';
     return '<article class="sf-product" data-type="'+escape(item.type)+'">'+
       '<div class="sf-art">'+renderCosmeticArtwork(item)+'</div>'+
@@ -72,5 +73,5 @@ export function renderShopPage(profile, options={}) {
     '<option value="'+v+'" '+(options.sort===v?"selected":"")+'>'+label+'</option>').join("")+'</select></label>'+
     '<label class="sf-affordable"><input type="checkbox" data-shop-affordable '+(options.affordable?"checked":"")+'> По карману</label></div></div>'+
     '<div id="shop-results">'+renderShopResults(profile,options)+'</div>'+
-    '<p class="sf-shop-note">Купить предмет можно через /shop в Discord. Экипировка купленных вещей в приложении отправляется боту для проверки и подтверждения. Сайт не списывает монеты самостоятельно.</p></div>';
+    '<p class="sf-shop-note">Покупки и экипировка отправляются Discord-боту для проверки. Монеты списывает только бот в своей базе данных, после подтверждения операции.</p></div>';
 }
