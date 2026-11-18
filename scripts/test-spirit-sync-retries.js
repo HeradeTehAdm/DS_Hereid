@@ -1,6 +1,9 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+process.env.DISCORD_TOKEN = "test-token";
+process.env.CLIENT_ID = "12345678901234567";
+process.env.GUILD_ID = "12345678901234568";
 const { networkErrorText, retryDelayMs } = require("../src/spirit-outbound-sync");
 
 assert.equal(networkErrorText(Object.assign(new Error("socket failure"), { code: "ETIMEDOUT" })), "ETIMEDOUT");
