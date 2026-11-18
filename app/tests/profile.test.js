@@ -15,10 +15,19 @@ test("profile signatures cover method, path, query, nonce and timestamp", () => 
 
 test("only trusted numeric profile data and bounded awards are accepted", () => {
   const valid = { level: 4, xp: 1600, balance: 125,
-    achievements: [{ id: "first", name: "Первый", description: "Описание", badge: "🏆", rarity: "Обычный" }] };
+    achievements: [{ id: "first", name: "Первый", description: "Описание", badge: "🏆", rarity: "Обычный" }],
+    rank: { rank: "MEMBER", days: 10, messages: 90, activeDays: 5, voiceSeconds: 300 },
+    inventory: [{ id: "title_test", name: "Титул", category: "Титулы", description: "Описание", price: 100, type: "title", rarity: "Обычный" }],
+    catalog: [], equipped: { title: null, badge: null, banner: null, color: null },
+    quests: [{ key: "messages", name: "Общение", description: "Сообщения", target: 5, reward: 25, progress: 3, completed: false }],
+    redeemedPromos: [{code:"CODE",redeemedAt:1794950000000}], transactions: [{amount:20,kind:"promo",details:"Начисление",createdAt:1794950000000}],
+  };
   assert.deepEqual(validatedProfile(valid), valid);
   assert.equal(validatedProfile({ ...valid, xp: "1600" }), null);
   assert.equal(validatedProfile({ ...valid, balance: -1 }), null);
+  assert.equal(validatedProfile({ ...valid, quests: [{ ...valid.quests[0], progress: "3" }] }), null);
+  assert.equal(validatedProfile({ ...valid, redeemedPromos: [{ code: "BAD", redeemedAt: "yesterday" }] }), null);
+  assert.equal(validatedProfile({ ...valid, catalog: [{ id: "item" }] }), null);
   assert.equal(validatedProfile({ ...valid, achievements: [{ id: "bad", name: "<img>", badge: "🏆" }] }), null);
 });
 

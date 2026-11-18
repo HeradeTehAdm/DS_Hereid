@@ -1,6 +1,15 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const pathModule = require("node:path");
+const tempDir = fs.mkdtempSync(pathModule.join(os.tmpdir(), "spirit-api-test-"));
+process.env.DATABASE_PATH = pathModule.join(tempDir, "test.sqlite");
+process.env.DISCORD_TOKEN = "test-token";
+process.env.CLIENT_ID = "12345678901234567";
+process.env.GUILD_ID = "12345678901234568";
+process.env.LOG_LEVEL = "error";
 const { createProfileHandler, signature, authenticated, ROUTE } = require("../src/spirit-profile-api");
 
 const secret = "x".repeat(48);
@@ -25,6 +34,9 @@ const db = {
     if (query.includes("FROM member_stats")) return {
       get(g, u) { assert.equal(g, guildId); assert.equal(u, userId); return { xp: 900, level: 3, balance: 12 }; }
     };
+    if (query.includes("FROM member_rank_activity")) return { get() { return null; } };
+    if (query.includes("FROM promo_redemptions")) return { all() { return [{ code: "ДОДЕП", redeemed_at: 1794950000000 }]; } };
+    if (query.includes("FROM economy_daily_quests")) return { all() { return []; } };
     if (query.includes("FROM member_achievements")) return {
       all(g, u) { assert.equal(g, guildId); assert.equal(u, userId); return [{ achievement_id: "first_message", awarded_at: "2026-11-18" }]; }
     };
@@ -53,8 +65,14 @@ const result = run(path, liveHeaders);
 assert.equal(result.status, 200);
 assert.deepEqual(result.json.profile.level, 3);
 assert.equal(result.json.profile.achievements[0].name, "Первое слово");
+assert.equal(result.json.profile.redeemedPromos[0].code, "ДОДЕП");
+assert.ok(Array.isArray(result.json.profile.catalog));
+assert.ok(Array.isArray(result.json.profile.inventory));
+assert.ok(Array.isArray(result.json.profile.quests));
 assert.equal(result.headers["Cache-Control"], "no-store, private");
 assert.equal(run(path + "&other=1", {
   ...liveHeaders, "x-spirit-signature": signature(secret, t, n, "GET", path + "&other=1")
 }).status, 400);
 console.log("Spirit Profile API signed-request checks passed");
+require("../src/database").close();
+fs.rmSync(tempDir, { recursive: true, force: true });
