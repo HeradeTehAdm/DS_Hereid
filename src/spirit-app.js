@@ -50,7 +50,7 @@ async function handleLaunchButton(interaction, logger = console) {
     await interaction.launchActivity();
   } catch (error) {
     if (error?.code === 50013) {
-      logger.warn(`Discord denied Spirit Activity launch (50013). guild=${interaction.guildId || "DM"}; memberUseActivities=${memberPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}; appUseActivities=${interaction.appPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}. Check channel overrides, server app configuration, and Discord Developer Portal Activities.`);
+      logger.warn(`Discord denied Spirit Activity launch (50013). guild=${interaction.guildId || "DM"}; memberUseActivities=${memberPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}; appUseActivities=${interaction.appPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}. Check Use Activities permission, channel overrides, server app configuration, and Discord Developer Portal Activities.`);
       return true;
     }
     if (error?.code === 10062) {
