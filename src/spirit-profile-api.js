@@ -114,9 +114,9 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
         }));
       return respond(res, 200, {
         profile: {
-          level: Math.max(0, Number(stats.level) || 0),
-          xp: Math.max(0, Number(stats.xp) || 0),
-          balance: Math.max(0, Number(stats.balance) || 0),
+          level: Math.max(0, Number(stats?.level) || 0),
+          xp: Math.max(0, Number(stats?.xp) || 0),
+          balance: Math.max(0, Number(stats?.balance) || 0),
           achievements,
           rank: activity,
           inventory,
