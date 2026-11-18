@@ -50,3 +50,17 @@ test("profile API needs https and a long server secret", () => {
     }
   }
 });
+
+test("optional validated cosmetics preserve exact badge emoji and color hex", () => {
+  const base = {
+    level:1,xp:10,balance:100,achievements:[],rank:null,quests:[],
+    redeemedPromos:[],transactions:[],
+    inventory:[{id:"badge_star",name:"Значок «Звезда»",type:"badge",category:"Значки",description:"Звезда",price:10,rarity:"Редкий",value:"⭐"}],
+    catalog:[{id:"color_blue",name:"Цвет «Синий»",type:"color",category:"Цвета",description:"Синий",price:20,rarity:"Обычный",value:"5865F2"}],
+    equipped:{banner:null,title:null,color:null,badge:null},
+  };
+  const validated=validatedProfile(base);
+  assert.equal(validated.inventory[0].value,"⭐");
+  assert.equal(validated.catalog[0].value,"5865F2");
+  assert.equal(validatedProfile({...base,catalog:[{...base.catalog[0],value:"x".repeat(200)}]}),null);
+});
