@@ -1,6 +1,15 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const pathModule = require("node:path");
+const tempDir = fs.mkdtempSync(pathModule.join(os.tmpdir(), "spirit-api-test-"));
+process.env.DATABASE_PATH = pathModule.join(tempDir, "test.sqlite");
+process.env.DISCORD_TOKEN = "test-token";
+process.env.CLIENT_ID = "12345678901234567";
+process.env.GUILD_ID = "12345678901234568";
+process.env.LOG_LEVEL = "error";
 const { createProfileHandler, signature, authenticated, ROUTE } = require("../src/spirit-profile-api");
 
 const secret = "x".repeat(48);
@@ -65,3 +74,5 @@ assert.equal(run(path + "&other=1", {
   ...liveHeaders, "x-spirit-signature": signature(secret, t, n, "GET", path + "&other=1")
 }).status, 400);
 console.log("Spirit Profile API signed-request checks passed");
+require("../src/database").close();
+fs.rmSync(tempDir, { recursive: true, force: true });
