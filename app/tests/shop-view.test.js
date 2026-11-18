@@ -26,7 +26,8 @@ test("owned and equipped indicators are based on bot snapshot, not balance",()=>
   assert.ok(markup.includes("/profile-banners/skycastle.svg"));
   assert.ok(markup.includes('data-equip-id="badge_star"'));
   assert.ok(!markup.includes('data-equip-id="banner_skycastle"'));
-  assert.ok(markup.includes('data-buy-id="banner_skycastle"') === false);\n  assert.ok(markup.includes('data-buy-id="title_legend"'));
+  assert.ok(markup.includes('data-buy-id="banner_skycastle"') === false);
+  assert.ok(markup.includes('data-buy-id="title_legend"'));
   assert.ok(!markup.includes('data-buy-id="badge_star"'));
 });
 test("all categories and search controls rendered without untrusted markup",()=>{
