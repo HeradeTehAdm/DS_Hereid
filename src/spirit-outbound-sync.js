@@ -5,7 +5,6 @@ const { createProfileReader } = require("./spirit-profile-api");
 const INTERVAL_MS = 30000;
 const USER_ID = /^\d{17,20}$/;
 const REQUEST_TIMEOUT_MS = 20000;
-const RETRY_INTERVAL_MS = 30000;
 function networkErrorText(error) {
   const code = error?.cause?.code;
   if (typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code)) return code;
