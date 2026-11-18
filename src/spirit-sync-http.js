@@ -2,6 +2,7 @@
 
 const https = require("node:https");
 const dns = require("node:dns").promises;
+const { isIP } = require("node:net");
 
 const RESPONSE_LIMIT_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 10000;
@@ -20,7 +21,7 @@ function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
     if (family !== 4) return [null];
     try {
       const found = await dns.lookup(hostname, { all: true, family: 4 });
-      const list = [...new Set(found.map(x => x.address))].filter(x => /^\d{1,3}(?:\.\d{1,3}){3}$/.test(x));
+      const list = [...new Set(found.map(x => x.address))].filter(x => isIP(x) === 4);
       return list.length > 0 ? list.slice(0, 3) : [null];
     } catch { return [null]; }
   }
@@ -40,7 +41,12 @@ function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
         // Per-address attempt uses a dedicated socket. The URL hostname is
         // unchanged, so both SNI and certificate hostname validation remain on.
         agent: address ? false : agent,
-        ...(address ? { lookup: (_host, _opts, cb) => cb(null, address, 4) } : {}),
+        ...(address ? { lookup: (_host, options, callback) => {
+          // Node.js 22 can request lookup({ all: true }) during connection
+          // auto-selection. Returning a string then triggers ERR_INVALID_IP_ADDRESS.
+          if (options?.all) callback(null, [{ address, family: 4 }]);
+          else callback(null, address, 4);
+        } } : {}),
         method,
         headers: {
           ...headers,
