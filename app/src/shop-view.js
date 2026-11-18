@@ -37,7 +37,11 @@ function rarity(item) {
 export function renderShopResults(profile, options={}) {
   const items = filterShopItems(profile?.catalog, {...options,balance:profile?.balance});
   if (!items.length) return '<div class="sf-no-results"><div>✧</div><h3>Предметы не найдены</h3><p>Попробуй другую категорию или поисковый запрос.</p></div>';
-  const visible = items.slice(0,120);
+  const perPage = 36;
+  const pages = Math.max(1, Math.ceil(items.length / perPage));
+  const page = Math.max(0, Math.min(pages - 1, Math.trunc(Number(options.page) || 0)));
+  const offset = page * perPage;
+  const visible = items.slice(offset, offset + perPage);
   const cards = visible.map(item => {
     const owned = itemIsOwned(profile,item);
     const equipped = itemIsEquipped(profile,item);
@@ -53,8 +57,12 @@ export function renderShopResults(profile, options={}) {
       '<h3>'+escape(stripName(item.name))+'</h3><p>'+escape(item.description||"Предмет оформления")+'</p>'+
       '<div class="sf-product-footer"><strong>🪙 '+format(item.price)+'</strong>'+action+'</div></div></article>';
   }).join("");
-  return '<div class="sf-result-count">Показано '+format(visible.length)+' из '+format(items.length)+' предметов'+
-    (visible.length<items.length?' · Уточни поиск для остальных':'')+'</div><div class="sf-product-grid">'+cards+'</div>';
+  const pager = pages > 1 ? '<nav class="sf-pager" aria-label="Страницы магазина">' +
+    '<button type="button" data-shop-page="'+(page - 1)+'" '+(page === 0 ? 'disabled' : '')+'>← Назад</button>' +
+    '<span>Страница '+(page+1)+' / '+pages+'</span>' +
+    '<button type="button" data-shop-page="'+(page + 1)+'" '+(page === pages - 1 ? 'disabled' : '')+'>Вперёд →</button></nav>' : '';
+  return '<div class="sf-result-count">Показано '+format(offset+1)+'–'+format(offset+visible.length)+
+    ' из '+format(items.length)+' предметов</div><div class="sf-product-grid">'+cards+'</div>'+pager;
 }
 export function renderShopPage(profile, options={}) {
   const category = options.category || "all";

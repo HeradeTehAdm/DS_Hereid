@@ -39,7 +39,7 @@ let equipPending = false;
 let equipFeedback = "";
 let purchasePending = false;
 let purchaseFeedback = "";
-const shopFilters = { category: "all", search: "", sort: "featured", affordable: false };
+const shopFilters = { category: "all", search: "", sort: "featured", affordable: false, page: 0 };
 
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const num = (value) => Number(value || 0).toLocaleString("ru-RU");
@@ -272,10 +272,22 @@ function render() {
     mount.innerHTML = renderShopResults(session.profile, shopFilters);
     attachEquipHandlers(mount);
     attachPurchaseHandlers(mount);
+    attachPagination(mount);
   };
+  const attachPagination = (scope = root) => {
+    for (const button of scope.querySelectorAll("[data-shop-page]")) button.addEventListener("click", () => {
+      const page = Number(button.dataset.shopPage);
+      if (!Number.isSafeInteger(page) || page < 0) return;
+      shopFilters.page = page;
+      redrawShop();
+      root.querySelector(".sf-store-toolbar")?.scrollIntoView({block:"start",behavior:"smooth"});
+    });
+  };
+  attachPagination();
   for (const button of root.querySelectorAll("[data-shop-category]")) button.addEventListener("click", () => {
     if (!STORE_CATEGORIES.includes(button.dataset.shopCategory)) return;
     shopFilters.category = button.dataset.shopCategory;
+    shopFilters.page = 0;
     for (const tab of root.querySelectorAll("[data-shop-category]")) {
       const selected = tab.dataset.shopCategory === shopFilters.category;
       tab.classList.toggle("selected", selected);
@@ -286,12 +298,13 @@ function render() {
   const searchInput = root.querySelector("[data-shop-search]");
   if (searchInput) searchInput.addEventListener("input", () => {
     shopFilters.search = searchInput.value.slice(0, 80);
+    shopFilters.page = 0;
     redrawShop();
   });
   const selectInput = root.querySelector("[data-shop-sort]");
-  if (selectInput) selectInput.addEventListener("change", () => { shopFilters.sort = selectInput.value; redrawShop(); });
+  if (selectInput) selectInput.addEventListener("change", () => { shopFilters.sort = selectInput.value; shopFilters.page = 0; redrawShop(); });
   const affordableInput = root.querySelector("[data-shop-affordable]");
-  if (affordableInput) affordableInput.addEventListener("change", () => { shopFilters.affordable = affordableInput.checked; redrawShop(); });
+  if (affordableInput) affordableInput.addEventListener("change", () => { shopFilters.affordable = affordableInput.checked; shopFilters.page = 0; redrawShop(); });
   const retryActivity = root.querySelector("[data-activity-retry]");
   if (retryActivity) retryActivity.addEventListener("click", () => { void bootstrap(); });
   const retry = root.querySelector("[data-retry]");

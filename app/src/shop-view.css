@@ -64,3 +64,8 @@ main{max-width:1440px}
 .sf-action-buy{border:1px solid #eeb57e;color:#200f2d;background:linear-gradient(110deg,#ffd88c,#f3a2e8);box-shadow:0 0 16px #df78c53d}
 .sf-action-buy:hover{filter:brightness(1.08)}
 .sf-action-buy:disabled{opacity:.55;cursor:progress}
+
+.sf-pager{display:flex;flex-direction:row!important;justify-content:center;align-items:center;gap:17px;padding:25px 0;color:#cdb7e3;font-size:12px;font-weight:800}
+.sf-pager button{border:1px solid #b068ed8a;border-radius:10px;background:#2b1b48;color:#fff;padding:10px 17px;font:inherit}
+.sf-pager button:disabled{cursor:default;opacity:.35}
+.sf-pager button:not(:disabled):hover{background:#542978}
