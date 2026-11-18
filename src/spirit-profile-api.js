@@ -60,6 +60,7 @@ function createProfileReader({ db, guildId }) {
   const sanitizedItem = (item) => ({
     id: item.id, name: item.name, category: item.category, description: item.description,
     price: item.price, type: item.type, rarity: economy.getItemRarity(item),
+    ...(typeof item.value === "string" && item.value.length <= 80 ? { value: item.value } : {}),
   });
   const publicCatalog = economy.CATALOG.filter((item) => !item.exclusive && !item.id.startsWith("ach_"))
     .map(sanitizedItem);

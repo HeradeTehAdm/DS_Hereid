@@ -1,6 +1,8 @@
 import "./style.css";
 import "./cosmetic-profile.css";
+import "./shop-view.css";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
+import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
 
 const svg = (name, size = 22) => {
@@ -35,6 +37,7 @@ let activityState = isDiscordActivity ? "connecting" : "browser";
 let activityError = "";
 let equipPending = false;
 let equipFeedback = "";
+const shopFilters = { category: "all", search: "", sort: "featured", affordable: false };
 
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const num = (value) => Number(value || 0).toLocaleString("ru-RU");
@@ -142,8 +145,7 @@ function itemCards(items, empty = "Здесь пока ничего нет.") {
 function extendedContent() {
   const p = session?.profile;
   if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", renderCosmeticsGallery(session));
-  if (current === "shop") return syncPage("Магазин", "Каталог бота. Покупки пока доступны через команду /shop в Discord.",
-    itemCards(p?.catalog, "Каталог пока недоступен"));
+  if (current === "shop") return syncPage("Магазин", "Твой стиль — в одном месте.", renderShopPage(p, shopFilters));
   if (current === "quests") return syncPage("Ежедневные задания", "Текущий прогресс заданий из Discord.",
     p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
       '<div class="feature"><strong>' + safe(q.name) + '</strong><small>' + safe(q.description) +
@@ -185,10 +187,38 @@ function content() {
 
 function render() {
   root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
-  for (const button of root.querySelectorAll("[data-equip-id]")) {
-    button.disabled = equipPending;
-    button.addEventListener("click", () => { void handleEquip(button.dataset.equipId); });
-  }
+  const attachEquipHandlers = (scope = root) => {
+    for (const button of scope.querySelectorAll("[data-equip-id]")) {
+      button.disabled = equipPending;
+      button.addEventListener("click", () => { void handleEquip(button.dataset.equipId); });
+    }
+  };
+  attachEquipHandlers();
+  const redrawShop = () => {
+    const mount = root.querySelector("#shop-results");
+    if (!mount || !session?.profile) return;
+    mount.innerHTML = renderShopResults(session.profile, shopFilters);
+    attachEquipHandlers(mount);
+  };
+  for (const button of root.querySelectorAll("[data-shop-category]")) button.addEventListener("click", () => {
+    if (!STORE_CATEGORIES.includes(button.dataset.shopCategory)) return;
+    shopFilters.category = button.dataset.shopCategory;
+    for (const tab of root.querySelectorAll("[data-shop-category]")) {
+      const selected = tab.dataset.shopCategory === shopFilters.category;
+      tab.classList.toggle("selected", selected);
+      tab.setAttribute("aria-pressed", String(selected));
+    }
+    redrawShop();
+  });
+  const searchInput = root.querySelector("[data-shop-search]");
+  if (searchInput) searchInput.addEventListener("input", () => {
+    shopFilters.search = searchInput.value.slice(0, 80);
+    redrawShop();
+  });
+  const selectInput = root.querySelector("[data-shop-sort]");
+  if (selectInput) selectInput.addEventListener("change", () => { shopFilters.sort = selectInput.value; redrawShop(); });
+  const affordableInput = root.querySelector("[data-shop-affordable]");
+  if (affordableInput) affordableInput.addEventListener("change", () => { shopFilters.affordable = affordableInput.checked; redrawShop(); });
   const retryActivity = root.querySelector("[data-activity-retry]");
   if (retryActivity) retryActivity.addEventListener("click", () => { void bootstrap(); });
   const retry = root.querySelector("[data-retry]");
