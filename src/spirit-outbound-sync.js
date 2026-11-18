@@ -2,8 +2,16 @@
 
 const { createProfileReader } = require("./spirit-profile-api");
 
-const INTERVAL_MS = 15000;
+const INTERVAL_MS = 30000;
 const USER_ID = /^\d{17,20}$/;
+const REQUEST_TIMEOUT_MS = 20000;
+function networkErrorText(error) {
+  const code = error?.cause?.code;
+  if (typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code)) return code;
+  if (error?.name === "TimeoutError" || error?.name === "AbortError") return "HTTPS request timeout";
+  return String(error?.name || "network error").slice(0, 60);
+}
+
 
 function startSpiritOutboundSync({ db, config, logger }) {
   const secret = process.env.SPIRIT_SYNC_SECRET || "";
@@ -27,7 +35,7 @@ function startSpiritOutboundSync({ db, config, logger }) {
     active = true;
     try {
       const jobsResponse = await fetch(origin + "/api/sync/jobs", {
-        headers, signal: AbortSignal.timeout(8000), redirect: "error", cache: "no-store",
+        headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), redirect: "error", cache: "no-store",
       });
       if (!jobsResponse.ok) {
         logger.warn(`Spirit outbound sync jobs request returned HTTP ${jobsResponse.status}.`);
@@ -44,17 +52,17 @@ function startSpiritOutboundSync({ db, config, logger }) {
             method: "POST",
             headers: { ...headers, "Content-Type": "application/json" },
             body: JSON.stringify({ userId, profile }),
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             redirect: "error",
             cache: "no-store",
           });
           if (!result.ok) logger.warn(`Spirit outbound sync update failed (HTTP ${result.status}).`);
         } catch (error) {
-          logger.warn(`Spirit outbound sync member update failed: ${error.message}`);
+          logger.warn(`Spirit outbound sync member update failed: ${networkErrorText(error)}`);
         }
       }
     } catch (error) {
-      logger.warn(`Spirit outbound sync polling failed: ${error.message}`);
+      logger.warn(`Spirit outbound sync polling failed: ${networkErrorText(error)}; check outbound HTTPS/DNS access to ${url.hostname}:443.`);
     } finally {
       active = false;
     }
