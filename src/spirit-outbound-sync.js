@@ -6,11 +6,31 @@ const { diagnoseSpiritConnectivity } = require("./spirit-sync-diagnostics");
 
 const INTERVAL_MS = 30000;
 const USER_ID = /^\d{17,20}$/;
+const MAX_RETRY_DELAY_MS = 15 * 60 * 1000;
+
 function networkErrorText(error) {
-  const code = error?.cause?.code;
-  if (typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code)) return code;
-  if (error?.name === "TimeoutError" || error?.name === "AbortError") return "HTTPS request timeout";
+  const chain = [];
+  let current = error;
+  for (let i = 0; current && i < 4; i++) {
+    chain.push(current);
+    current = current.cause;
+  }
+  const code = chain.map(item => item?.code).find(value =>
+    typeof value === "string" && /^[A-Z0-9_]{2,40}$/.test(value));
+  if (code) return code;
+  if (chain.some(item => item?.name === "TimeoutError" || item?.name === "AbortError")) {
+    return "HTTPS request timeout";
+  }
+  // Node's fetch/network APIs can wrap connection failures in a generic TypeError.
+  // Keep logs deterministic and avoid leaking headers, secrets or request bodies.
+  const message = chain.map(item => String(item?.message || "")).find(value =>
+    /timeout|timed out/i.test(value));
+  if (message) return "HTTPS request timeout";
   return String(error?.name || "network error").slice(0, 60);
+}
+
+function retryDelayMs(failures) {
+  return Math.min(MAX_RETRY_DELAY_MS, INTERVAL_MS * 2 ** Math.min(10, Math.max(0, failures - 1)));
 }
 
 
@@ -33,17 +53,23 @@ function startSpiritOutboundSync({ db, config, logger }) {
   const readProfile = createProfileReader({ db, guildId: config.guildId });
   let active = false;
   let stopped = false;
+  let failures = 0;
+  let nextAttemptAt = 0;
   const headers = { "x-spirit-sync-secret": secret, "Accept": "application/json" };
 
   async function poll() {
-    if (active || stopped) return;
+    if (active || stopped || Date.now() < nextAttemptAt) return;
     active = true;
     try {
       const jobsResponse = await client.requestJson(new URL("/api/sync/jobs", origin), { headers });
       if (!jobsResponse.ok) {
-        logger.warn(`Spirit outbound sync jobs request returned HTTP ${jobsResponse.status}.`);
+        failures++;
+        nextAttemptAt = Date.now() + retryDelayMs(failures);
+        logger.warn(`Spirit outbound sync jobs request returned HTTP ${jobsResponse.status}; next attempt in ${Math.ceil(retryDelayMs(failures) / 1000)}s.`);
         return;
       }
+      failures = 0;
+      nextAttemptAt = 0;
       const jobs = jobsResponse.data;
       if (!Array.isArray(jobs?.userIds)) throw new Error("Unexpected sync jobs response.");
       for (const userId of jobs.userIds.slice(0, 10)) {
@@ -60,7 +86,10 @@ function startSpiritOutboundSync({ db, config, logger }) {
         }
       }
     } catch (error) {
-      logger.warn(`Spirit outbound sync polling failed: ${networkErrorText(error)}; target ${url.hostname}:443, IP family ${preferredFamily || "auto"}.`);
+      failures++;
+      const delay = retryDelayMs(failures);
+      nextAttemptAt = Date.now() + delay;
+      logger.warn(`Spirit outbound sync polling failed: ${networkErrorText(error)}; target ${url.hostname}:443, IP family ${preferredFamily || "auto"}; retry in ${Math.ceil(delay / 1000)}s.`);
       if (Date.now() - lastNetworkDiagnosticAt > 60 * 60 * 1000) {
         lastNetworkDiagnosticAt = Date.now();
         void diagnoseSpiritConnectivity(url.hostname, logger).catch(() => {});
@@ -83,4 +112,4 @@ function startSpiritOutboundSync({ db, config, logger }) {
   };
 }
 
-module.exports = { startSpiritOutboundSync };
+module.exports = { startSpiritOutboundSync, networkErrorText, retryDelayMs };
