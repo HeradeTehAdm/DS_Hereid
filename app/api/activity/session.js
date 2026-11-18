@@ -55,6 +55,7 @@ export default async function handler(req, res) {
     };
     return json(res, 200, {
       access_token: token.access_token,
+      user_id: user.id,
       activity_session: seal(identity, config.sessionSecret),
       expires_in: Math.min(60 * 60, Math.floor(token.expires_in)),
     });
