@@ -1,5 +1,6 @@
 import "./style.css";
 import "./cosmetic-profile.css";
+import "./shop-view.css";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
