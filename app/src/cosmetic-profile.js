@@ -27,6 +27,7 @@ const rarityClass = (value) => {
   return "common";
 };
 const iconFor = (item, type) => {
+  if (type === "badge" && typeof item?.value === "string" && item.value.length > 0 && item.value.length <= 8) return item.value;
   const value = normalize(item?.id + " " + item?.name);
   if (value.includes("корон") || value.includes("crown")) return "♛";
   if (value.includes("алмаз") || value.includes("diamond")) return "💎";
@@ -37,6 +38,11 @@ const iconFor = (item, type) => {
   return type === "title" ? "♛" : type === "color" ? "◈" : type === "badge" ? "✦" : "✧";
 };
 function palette(item) {
+  // Paint color purchases with their actual catalog hex values, not a guessed theme.
+  if (item?.type === "color" && /^[0-9a-fA-F]{6}$/.test(String(item.value || ""))) {
+    const hex = "#" + item.value;
+    return ["#0a0b25", hex, hex];
+  }
   const id = normalize(item?.id + " " + item?.name);
   if (/blackhole|_hole|дыра|горизонт событий/.test(id)) return ["#09041a", "#ae29b4", "#ff9e71"];
   if (/galaxy|галакт|звезд|звёзд|cosmic|космо|orbit|орбит/.test(id)) return ["#0a0e3f", "#6744f6", "#5ce2fc"];
