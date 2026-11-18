@@ -26,6 +26,22 @@ assert.equal(launchButton.style, 1);
   assert.equal(launches, 1);
   assert.equal(await handleLaunchButton({ ...interaction, customId: "some:other" }), false);
   assert.equal(launches, 1);
+  const warnings = [];
+  const logger = { warn: (message) => warnings.push(message) };
+  for (const [code, phrase] of [[50013, "Use Activities"], [10062, "expired"]]) {
+    assert.equal(await handleLaunchButton({
+      ...interaction, launchActivity: async () => {
+        throw Object.assign(new Error("Discord error"), { code });
+      },
+    }, logger), true);
+    assert.match(warnings.at(-1), new RegExp(phrase));
+  }
+  assert.equal(launches, 1);
+  await assert.rejects(() => handleLaunchButton({
+    ...interaction, launchActivity: async () => {
+      throw Object.assign(new Error("other API error"), { code: 50001 });
+    },
+  }, logger), /other API error/);
   console.log("Spirit Activity button interaction checks passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });
 const channel = { isTextBased: () => true, send: () => {}, permissionsFor: () => ({
