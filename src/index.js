@@ -9,6 +9,7 @@ const db = require("./database");
 const { startMinecraftApi } = require("./minecraft-api");
 const { startSpiritProfileApi } = require("./spirit-profile-api");
 const { startSpiritOutboundSync } = require("./spirit-outbound-sync");
+const spiritApp = require("./spirit-app");
 const { isFeatureEnabled } = require("./features");
 const { addMessageXp } = require("./member-profile");
 const { ensureMember, recordMessage, recordVoiceState, evaluateMember, evaluateGuild } = require("./rank-system");
@@ -141,6 +142,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
           flags: MessageFlags.Ephemeral,
         });
       }
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === spiritApp.ACTIVITY_LAUNCH_ID) {
+      await spiritApp.handleLaunchButton(interaction);
       return;
     }
 
