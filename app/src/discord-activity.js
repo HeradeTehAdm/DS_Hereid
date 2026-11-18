@@ -36,10 +36,10 @@ export async function connectDiscordActivity() {
     cache: "no-store",
   });
   if (!response.ok) throw new Error("Не удалось подтвердить вход через Discord.");
-  const { access_token: accessToken, activity_session: activitySession } = await response.json();
+  const { access_token: accessToken, activity_session: activitySession, user_id: verifiedUserId } = await response.json();
   if (!accessToken || !activitySession) throw new Error("Сервер не выдал Activity-сессию.");
   const auth = await sdk.commands.authenticate({ access_token: accessToken });
-  if (!auth?.user?.id) throw new Error("Discord не подтвердил учётную запись.");
+  if (!auth?.user?.id || auth.user.id !== verifiedUserId) throw new Error("Discord не подтвердил учётную запись.");
   // The server independently authenticated the OAuth code; the SDK verifies
   // the same identity within the host client.
   sessionToken = activitySession;
