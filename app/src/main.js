@@ -16,6 +16,11 @@ const sections = [
   { id: "home", label: "Главная", icon: "home" },
   { id: "profile", label: "Профиль", icon: "user" },
   { id: "achievements", label: "Награды", icon: "trophy" },
+  { id: "inventory", label: "Коллекция", icon: "spark" },
+  { id: "shop", label: "Магазин", icon: "spark" },
+  { id: "quests", label: "Задания", icon: "trophy" },
+  { id: "promos", label: "Промокоды", icon: "spark" },
+  { id: "history", label: "История", icon: "spark" },
 ];
 
 const root = document.getElementById("app");
@@ -43,10 +48,66 @@ if (!session?.profile) return '<div class="profile-card"><div class="profile-ava
   const base = 100 * level * level;
   const span = 100 * ((level + 1) ** 2 - level ** 2);
   const progress = Math.max(0, Math.min(100, (xp - base) / span * 100));
-  return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">ПРОФИЛЬ УЧАСТНИКА</span><h2>' + safe(session.identity.displayName || "Участник") + '</h2><p>' + safe(p.title || "Участник сообщества") + '</p></div></div><div class="stat-grid"><div class="stat"><span>УРОВЕНЬ</span><strong>' + num(level) + '</strong></div><div class="stat"><span>ОПЫТ</span><strong>' + num(xp) + ' XP</strong></div><div class="stat"><span>МОНЕТЫ</span><strong>' + num(p.balance) + '</strong></div></div><div class="progress-label"><span>До следующего уровня</span><span>' + Math.round(progress) + '%</span></div><div class="progress"><span style="width:' + progress + '%"></span></div>';
+  return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">ПРОФИЛЬ УЧАСТНИКА</span><h2>' + safe(session.identity.displayName || "Участник") + '</h2><p>' + safe(p.title || "Участник сообщества") + '</p></div></div><div class="stat-grid"><div class="stat"><span>УРОВЕНЬ</span><strong>' + num(level) + '</strong></div><div class="stat"><span>ОПЫТ</span><strong>' + num(xp) + ' XP</strong></div><div class="stat"><span>МОНЕТЫ</span><strong>' + num(p.balance) + '</strong></div></div>' + (p.rank ? '<div class="section-title"><h2>Активность и ранг</h2></div><div class="stat-grid"><div class="stat"><span>РАНГ</span><strong>' + safe(p.rank.rank) + '</strong></div><div class="stat"><span>СООБЩЕНИЯ</span><strong>' + num(p.rank.messages) + '</strong></div><div class="stat"><span>АКТИВНЫЕ ДНИ</span><strong>' + num(p.rank.activeDays) + '</strong></div></div>' : '') + '<div class="progress-label"><span>До следующего уровня</span><span>' + Math.round(progress) + '%</span></div><div class="progress"><span style="width:' + progress + '%"></span></div>';
+}
+
+function syncPage(title, description, body) {
+  const heading = '<section class="heading"><span class="eyebrow">ДАННЫЕ ИЗ DISCORD</span><h1>' + safe(title) + '</h1><p>' + safe(description) + '</p></section>';
+  if (!session?.identity) return heading + '<div class="empty"><h3>Войди через Discord</h3><p>Нужна авторизация для просмотра своих данных.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord</a></div>';
+  if (!session.profile) return heading + '<div class="empty"><h3>Ожидается соединение с ботом</h3><p>Профильное API временно недоступно или ещё не подключено.</p></div>';
+  return heading + body;
+}
+
+function itemCards(items, empty = "Здесь пока ничего нет.") {
+  if (!items?.length) return '<div class="empty"><h3>' + safe(empty) + '</h3></div>';
+  return '<div class="feature-grid">' + items.map((item) =>
+    '<div class="feature"><span class="feature-icon purple">' + svg("spark", 22) + '</span><strong>' +
+    safe(item.name) + '</strong><small>' + safe(item.description || item.category || "") +
+    '</small><span class="tag">' + safe(item.rarity || item.category || "") +
+    (typeof item.price === "number" ? ' · ' + num(item.price) + ' 🪙' : '') +
+    '</span></div>').join("") + '</div>';
+}
+
+function extendedContent() {
+  const p = session?.profile;
+  if (current === "inventory") {
+    const equipped = p?.equipped || {};
+    const styles = ["title", "badge", "banner", "color"].map((key) => ({
+      key, label: ({title:"Титул",badge:"Значок",banner:"Баннер",color:"Цвет"})[key],
+      item: equipped[key],
+    }));
+    return syncPage("Моя коллекция", "Приобретённые и полученные предметы.",
+      '<div class="section-title"><h2>Выбрано для профиля</h2></div>' +
+      '<div class="feature-grid">' + styles.map(x =>
+        '<div class="feature"><strong>' + x.label + '</strong><small>' +
+        safe(x.item?.name || "Не установлено") + '</small></div>').join("") + '</div>' +
+      '<div class="section-title"><h2>Инвентарь</h2><span>' + (p?.inventory?.length || 0) + '</span></div>' +
+      itemCards(p?.inventory));
+  }
+  if (current === "shop") return syncPage("Магазин", "Каталог бота. Покупки пока доступны через команду /shop в Discord.",
+    itemCards(p?.catalog, "Каталог пока недоступен"));
+  if (current === "quests") return syncPage("Ежедневные задания", "Текущий прогресс заданий из Discord.",
+    p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
+      '<div class="feature"><strong>' + safe(q.name) + '</strong><small>' + safe(q.description) +
+      '</small><span class="tag">' + num(q.progress) + '/' + num(q.target) +
+      ' · ' + (q.completed ? 'Выполнено' : 'В процессе') +
+      ' · +' + num(q.reward) + ' 🪙</span></div>').join("") + '</div>' :
+      '<div class="empty"><h3>Пока нет заданий</h3></div>');
+  if (current === "promos") return syncPage("Мои промокоды", "Показываем только уже использованные тобой промокоды. Активируй новые через /promo в Discord.",
+    p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
+      '<div class="feature"><strong>' + safe(x.code) + '</strong><small>Промокод активирован</small></div>').join("") +
+      '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>');
+  if (current === "history") return syncPage("История монет", "Твои последние операции. Источник — база Discord-бота.",
+    p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
+      '<div class="feature"><strong>' + (t.amount >= 0 ? '+' : '') + num(t.amount) +
+      ' 🪙</strong><small>' + safe(t.details || t.kind) + '</small><span class="tag">' +
+      safe(t.kind) + '</span></div>').join("") + '</div>' :
+      '<div class="empty"><h3>Пока нет операций</h3></div>');
+  return "";
 }
 
 function content() {
+  if (["inventory", "shop", "quests", "promos", "history"].includes(current)) return extendedContent();
   if (current === "profile") return '<section class="heading"><span class="eyebrow">МОЙ МИР</span><h1>Профиль <em>участника</em></h1><p>Твоя история и достижения в одном месте.</p></section>' + profileContent();
   if (current === "achievements") {
     const heading = '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section>';
