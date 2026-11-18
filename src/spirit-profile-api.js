@@ -113,7 +113,7 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
           createdAt: tx.created_at,
         }));
       return respond(res, 200, {
-        profile: (stats || rank || inventory.length) ? {
+        profile: {
           level: Math.max(0, Number(stats.level) || 0),
           xp: Math.max(0, Number(stats.xp) || 0),
           balance: Math.max(0, Number(stats.balance) || 0),
@@ -125,7 +125,7 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
           redeemedPromos,
           transactions,
           catalog: publicCatalog,
-        } : null,
+        },
       });
     } catch (error) {
       logger.error?.("Spirit Profile API database query failed.", error);
