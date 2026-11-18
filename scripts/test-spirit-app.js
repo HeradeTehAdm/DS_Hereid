@@ -26,6 +26,15 @@ assert.equal(launchButton.style, 1);
   assert.equal(launches, 1);
   assert.equal(await handleLaunchButton({ ...interaction, customId: "some:other" }), false);
   assert.equal(launches, 1);
+  let deniedMessage = null;
+  assert.equal(await handleLaunchButton({
+    ...interaction,
+    memberPermissions: { has: () => false },
+    reply: async (message) => { deniedMessage = message; },
+  }), true);
+  assert.match(deniedMessage.content, /Использовать активности/);
+  assert.equal(deniedMessage.flags, 64);
+  assert.equal(launches, 1);
   const warnings = [];
   const logger = { warn: (message) => warnings.push(message) };
   for (const [code, phrase] of [[50013, "Use Activities"], [10062, "expired"]]) {
