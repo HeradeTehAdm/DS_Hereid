@@ -77,6 +77,7 @@ function art(item, type, large = false) {
     const generatedIds = new Set([
       "banner_ocean", "banner_forest", "banner_sunset", "banner_neon",
       "banner_ice", "banner_galaxy", "banner_shadow",
+      "banner_gold", "banner_pumpkin", "banner_graveyard",
     ]);
     const generated = generatedIds.has(item?.id) ? '/banners/' + item.id + '.webp' : null;
     const images = generated ? 'url(' + generated + '),url(' + original + ')' : 'url(' + original + ')';
