@@ -23,7 +23,8 @@ async function main() {
   const request = https.request;
   const selected = [];
   const lookupShapes = [];
-  const fallbackClient = createSyncClient({ family: 4, timeoutMs: 1200 });
+  assert.throws(() => createSyncClient({ preferredIpv4: ["invalid"] }), /Invalid preferred IPv4/);
+  const fallbackClient = createSyncClient({ family: 4, timeoutMs: 1200, preferredIpv4: ["192.0.2.11"] });
   try {
     dns.lookup = async () => [
       { address: "192.0.2.10", family: 4 },
@@ -65,12 +66,23 @@ async function main() {
     };
     const result = await fallbackClient.requestJson(new URL("https://duh-svobody-app.vercel.app/api/sync/jobs"));
     assert.deepEqual(result.data, { ok: true });
+    assert.deepEqual(selected, ["192.0.2.11"]);
+    assert.equal(lookupShapes.length, 1);
+  } finally {
+    fallbackClient.close();
+  }
+  // If a preferred route fails, retry a DNS-resolved address in the same
+  // request; never retry invalid JSON or certificate errors.
+  const fallbackWithFailure = createSyncClient({ family: 4, timeoutMs: 1200, preferredIpv4: ["192.0.2.10"] });
+  selected.length = 0;
+  try {
+    const result = await fallbackWithFailure.requestJson(new URL("https://duh-svobody-app.vercel.app/api/sync/jobs"));
+    assert.deepEqual(result.data, { ok: true });
     assert.deepEqual(selected, ["192.0.2.10", "192.0.2.11"]);
-    assert.equal(lookupShapes.length, 2);
   } finally {
     dns.lookup = lookup;
     https.request = request;
-    fallbackClient.close();
+    fallbackWithFailure.close();
   }
   console.log("Spirit outbound HTTPS safety checks passed");
 }
