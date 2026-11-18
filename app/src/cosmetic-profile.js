@@ -87,7 +87,15 @@ function art(item, type, large = false) {
       "banner_storm", "banner_autumn", "banner_megacity", "banner_orbit",
       "banner_volcano", "banner_skycastle",
     ]);
-    const generated = generatedIds.has(item?.id) ? '/banners/' + item.id + '.webp' : null;
+    const originalImageIds = new Set([
+      "banner_moontemple", "banner_phoenix", "banner_rift", "banner_fractal",
+      "banner_worldtree", "banner_lavender", "banner_camp", "banner_harbor",
+      "banner_village", "banner_tropic", "banner_bamboo", "banner_aurora",
+      "banner_ghostship", "banner_steam", "banner_ruins", "banner_dragoneye",
+      "banner_bifrost", "banner_blackhole", "banner_gem", "banner_clock",
+    ]);
+    const generated = generatedIds.has(item?.id) ? '/banners/' + item.id + '.webp' :
+      originalImageIds.has(item?.id) ? '/banners/' + item.id + '.jpg' : null;
     const images = generated ? 'url(' + generated + '),url(' + original + ')' : 'url(' + original + ')';
     return '<div class="cos-banner-art cos-original ' + (large ? "cos-banner-large" : "") +
       '" style="' + cssVars(item) + 'background-image:' + images + ';background-size:cover;background-position:center">' +
