@@ -71,13 +71,15 @@ function art(item, type, large = false) {
     // served as self-contained SVG wrappers (no third-party image host).
     const match = /^banner_([a-z0-9]+)$/.exec(String(item?.id || ""));
     const original = match ? '/profile-banners/' + match[1] + '.svg' : '/profile-banners/classic.svg';
-    // Original bot artwork stays visible until optional generated WebP art is
-    // uploaded. A missing first CSS background layer is transparent, so the
-    // existing original SVG remains the second visible background layer.
+    // Generated artwork is present for the first 20 banner IDs.
+    // The original embedded bot artwork is the fallback for missing assets.
     const generatedIds = new Set([
       "banner_ocean", "banner_forest", "banner_sunset", "banner_neon",
       "banner_ice", "banner_galaxy", "banner_shadow",
       "banner_gold", "banner_pumpkin", "banner_graveyard",
+      "banner_dawn", "banner_lake", "banner_dunes", "banner_sakura",
+      "banner_storm", "banner_autumn", "banner_megacity", "banner_orbit",
+      "banner_volcano", "banner_skycastle",
     ]);
     const generated = generatedIds.has(item?.id) ? '/banners/' + item.id + '.webp' : null;
     const images = generated ? 'url(' + generated + '),url(' + original + ')' : 'url(' + original + ')';

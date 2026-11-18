@@ -40,3 +40,24 @@ test("escapes user controlled names and keeps theme CSS inert",()=>{
  assert.ok(html.includes("&lt;img"));
  assert.ok(!html.includes("<img src=x"));
 });
+
+test("all 20 original banner item IDs load their matching WebP and SVG fallback", () => {
+  const ids = [
+    "ocean","forest","sunset","neon","ice","galaxy","shadow","gold","pumpkin","graveyard",
+    "dawn","lake","dunes","sakura","storm","autumn","megacity","orbit","volcano","skycastle"
+  ];
+  for (const suffix of ids) {
+    const updated = {...session, profile: {
+      ...session.profile,
+      equipped: {...session.profile.equipped, banner: item("banner", "banner_" + suffix, "Баннер «" + suffix + "»")}
+    }};
+    const html = renderCosmeticProfile(updated);
+    assert.ok(html.includes("/banners/banner_" + suffix + ".webp"), "missing generated banner " + suffix);
+    assert.ok(html.includes("/profile-banners/" + suffix + ".svg"), "missing original fallback " + suffix);
+  }
+  const fallback = renderCosmeticProfile({...session,profile:{
+    ...session.profile,equipped:{...session.profile.equipped,banner:item("banner","banner_blackhole","Баннер «Горизонт событий»")}
+  }});
+  assert.ok(!fallback.includes("/banners/banner_blackhole.webp"), "unavailable artwork must not be linked");
+  assert.ok(fallback.includes("/profile-banners/blackhole.svg"));
+});
