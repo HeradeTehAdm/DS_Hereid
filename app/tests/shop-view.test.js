@@ -37,3 +37,14 @@ test("all categories and search controls rendered without untrusted markup",()=>
   assert.ok(!html.includes("<img onerror"));
   assert.equal(filterShopItems(null).length,0);
 });
+
+test("all catalog entries remain accessible across store pages",()=>{
+  const many = Array.from({length:101},(_,i)=>({...catalog[0],id:"banner_item_"+i,name:"Баннер "+i}));
+  const html1 = renderShopResults({...profile,catalog:many},{page:0});
+  const html3 = renderShopResults({...profile,catalog:many},{page:2});
+  assert.ok(html1.includes('data-shop-page="1"'));
+  assert.ok(html3.includes('data-shop-page="1"'));
+  assert.ok(html3.includes("Страница 3 / 3"));
+  assert.ok(html3.includes("Баннер 100"));
+  assert.ok(!html1.includes("Баннер 100"));
+});
