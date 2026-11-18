@@ -63,6 +63,8 @@ function startSpiritOutboundSync({ db, config, logger }) {
   let stopped = false;
   let failures = 0;
   let nextAttemptAt = 0;
+  let lastHealthyLogAt = 0;
+  let health = "starting";
   const headers = { "x-spirit-sync-secret": secret, "Accept": "application/json" };
 
   async function poll() {
@@ -71,15 +73,24 @@ function startSpiritOutboundSync({ db, config, logger }) {
     try {
       const jobsResponse = await client.requestJson(new URL("/api/sync/jobs", origin), { headers });
       if (!jobsResponse.ok) {
+        health = "unhealthy";
         failures++;
         nextAttemptAt = Date.now() + retryDelayMs(failures);
         logger.warn(`Spirit outbound sync jobs request returned HTTP ${jobsResponse.status}; next attempt in ${Math.ceil(retryDelayMs(failures) / 1000)}s.`);
         return;
       }
-      failures = 0;
-      nextAttemptAt = 0;
       const jobs = jobsResponse.data;
       if (!Array.isArray(jobs?.userIds)) throw new Error("Unexpected sync jobs response.");
+      const recovered = health !== "healthy";
+      health = "healthy";
+      failures = 0;
+      nextAttemptAt = 0;
+      const now = Date.now();
+      if (recovered || now - lastHealthyLogAt >= 60 * 60 * 1000) {
+        logger.info(`Spirit outbound sync connected: jobs endpoint HTTP 200, pending=${jobs.userIds.length}.`);
+        lastHealthyLogAt = now;
+      }
+      let updated = 0;
       for (const userId of jobs.userIds.slice(0, 10)) {
         if (stopped) break;
         if (typeof userId !== "string" || !USER_ID.test(userId)) continue;
@@ -89,11 +100,14 @@ function startSpiritOutboundSync({ db, config, logger }) {
             method: "POST", headers, body: { userId, profile },
           });
           if (!result.ok) logger.warn(`Spirit outbound sync update failed (HTTP ${result.status}).`);
+          else if (result.data?.ok === true) updated++;
         } catch (error) {
           logger.warn(`Spirit outbound sync member update failed: ${networkErrorText(error)}`);
         }
       }
+      if (updated > 0) logger.info(`Spirit outbound sync completed ${updated} profile update(s).`);
     } catch (error) {
+      health = "unhealthy";
       failures++;
       const delay = retryDelayMs(failures);
       nextAttemptAt = Date.now() + delay;
