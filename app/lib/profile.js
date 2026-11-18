@@ -55,7 +55,8 @@ export function validatedProfile(value) {
   const text = (v, max) => typeof v === "string" && v.length <= max;
   const item = (row) => row && text(row.id, 100) && text(row.name, 150) &&
     text(row.category, 100) && text(row.description, 400) &&
-    text(row.type, 40) && text(row.rarity, 60) && nonNegativeInteger(row.price);
+    text(row.type, 40) && text(row.rarity, 60) && nonNegativeInteger(row.price) &&
+    (row.value === undefined || text(row.value, 80));
   const inventory = value.inventory;
   const catalog = value.catalog;
   if (!Array.isArray(inventory) || inventory.length > 400 || !inventory.every(item) ||
@@ -83,13 +84,14 @@ export function validatedProfile(value) {
   return {
     level: value.level, xp: value.xp, balance: value.balance, achievements,
     rank, inventory: inventory.map((i) => ({ id:i.id,name:i.name,category:i.category,description:i.description,
-      price:i.price,type:i.type,rarity:i.rarity })),
+      price:i.price,type:i.type,rarity:i.rarity,...(i.value === undefined ? {} : {value:i.value}) })),
     catalog: catalog.map((i) => ({ id:i.id,name:i.name,category:i.category,description:i.description,
-      price:i.price,type:i.type,rarity:i.rarity })),
+      price:i.price,type:i.type,rarity:i.rarity,...(i.value === undefined ? {} : {value:i.value}) })),
     equipped: Object.fromEntries(["title","badge","banner","color"].map((k) => [k,equipped[k] ? {
       id: equipped[k].id, name: equipped[k].name, category: equipped[k].category,
       description: equipped[k].description, price: equipped[k].price,
       type: equipped[k].type, rarity: equipped[k].rarity,
+      ...(equipped[k].value === undefined ? {} : {value: equipped[k].value}),
     } : null])),
     quests: quests.map((q) => ({key:q.key,name:q.name,description:q.description,target:q.target,
       reward:q.reward,progress:q.progress,completed:q.completed})),
