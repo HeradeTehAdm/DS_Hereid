@@ -38,11 +38,19 @@ async function handleLaunchButton(interaction, logger = console) {
   // Discord must acknowledge this button with callback type LAUNCH_ACTIVITY (12).
   // Do not defer/reply before launching or try a second acknowledgement if
   // Discord rejects the callback; that can cause Unknown interaction (10062).
+  const memberPermissions = interaction.memberPermissions;
+  if (memberPermissions && !memberPermissions.has(PermissionFlagsBits.UseEmbeddedActivities)) {
+    await interaction.reply({
+      content: "⛔ Не разрешён запуск активностей в этом канале. Попроси администратора сервера включить «Использовать активности» (Use Activities) для твоей роли и канала.",
+      flags: 64,
+    });
+    return true;
+  }
   try {
     await interaction.launchActivity();
   } catch (error) {
     if (error?.code === 50013) {
-      logger.warn("Discord denied Spirit Activity launch (50013). Check Activities enabled in Developer Portal and Use Activities permissions for the member and channel.");
+      logger.warn(`Discord denied Spirit Activity launch (50013). guild=${interaction.guildId || "DM"}; memberUseActivities=${memberPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}; appUseActivities=${interaction.appPermissions?.has?.(PermissionFlagsBits.UseEmbeddedActivities) ?? "unknown"}. Check channel overrides, server app configuration, and Discord Developer Portal Activities.`);
       return true;
     }
     if (error?.code === 10062) {
