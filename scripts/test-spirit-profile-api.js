@@ -29,10 +29,11 @@ assert.equal(authenticated({ headers, method: "GET", url: path + "x" }, secret, 
 assert.equal(authenticated({ headers, method: "POST", url: path }, secret, now), false);
 assert.equal(authenticated({ headers, method: "GET", url: path }, secret, now + 61000), false);
 
+let missingStats = false;
 const db = {
   prepare(query) {
     if (query.includes("FROM member_stats")) return {
-      get(g, u) { assert.equal(g, guildId); assert.equal(u, userId); return { xp: 900, level: 3, balance: 12 }; }
+      get(g, u) { assert.equal(g, guildId); assert.equal(u, userId); return missingStats ? null : { xp: 900, level: 3, balance: 12 }; }
     };
     if (query.includes("FROM member_rank_activity")) return { get() { return null; } };
     if (query.includes("FROM promo_redemptions")) return { all() { return [{ code: "ДОДЕП", redeemed_at: 1794950000000 }]; } };
@@ -70,6 +71,13 @@ assert.ok(Array.isArray(result.json.profile.catalog));
 assert.ok(Array.isArray(result.json.profile.inventory));
 assert.ok(Array.isArray(result.json.profile.quests));
 assert.equal(result.headers["Cache-Control"], "no-store, private");
+missingStats = true;
+const fresh = run(path, liveHeaders);
+assert.equal(fresh.status, 200);
+assert.equal(fresh.json.profile.level, 0);
+assert.equal(fresh.json.profile.xp, 0);
+assert.equal(fresh.json.profile.balance, 0);
+missingStats = false;
 assert.equal(run(path + "&other=1", {
   ...liveHeaders, "x-spirit-signature": signature(secret, t, n, "GET", path + "&other=1")
 }).status, 400);
