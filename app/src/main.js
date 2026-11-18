@@ -37,6 +37,8 @@ let activityState = isDiscordActivity ? "connecting" : "browser";
 let activityError = "";
 let equipPending = false;
 let equipFeedback = "";
+let purchasePending = false;
+let purchaseFeedback = "";
 const shopFilters = { category: "all", search: "", sort: "featured", affordable: false };
 
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -117,6 +119,67 @@ async function handleEquip(itemId) {
   }
 }
 
+async function handlePurchase(itemId, price) {
+  if (purchasePending || !session?.profile) return;
+  const item = session.profile.catalog?.find(x => x.id === itemId);
+  if (!item || session.profile.inventory?.some(x => x.id === itemId)) return;
+  if (item.price !== price || price > session.profile.balance) return;
+  if (!window.confirm("Купить «" + item.name + "» за " + num(price) + " монет?")) return;
+  purchasePending = true;
+  purchaseFeedback = "Подтверждаем покупку в Discord…";
+  render();
+  try {
+    const response = await fetch(activityApiPath("/api/purchase"), {
+      method: "POST", headers: {
+        Accept:"application/json","Content-Type":"application/json",
+        "x-spirit-action":"purchase",...activityAuthHeaders()
+      }, body:JSON.stringify({itemId}),
+      credentials:isDiscordActivity ? "omit" : "same-origin",cache:"no-store",
+    });
+    const data = await response.json();
+    if (!response.ok || !data.id) {
+      if (response.status === 409) throw new Error(({
+        "already_owned":"Предмет уже куплен.",
+        "insufficient_funds":"Недостаточно монет.",
+        "profile_not_synced":"Обнови профиль перед покупкой.",
+        "not_for_sale":"Предмет недоступен для покупки."
+      })[data.error] || "Другая покупка ещё выполняется.");
+      throw new Error("Не удалось отправить запрос на покупку.");
+    }
+    purchaseFeedback = "Бот проверяет баланс и оформляет покупку…";
+    render();
+    const deadline = Date.now() + 110000;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve,3000));
+      const check = await fetch(activityApiPath("/api/purchase?id="+encodeURIComponent(data.id)),{
+        headers:{Accept:"application/json",...activityAuthHeaders()},
+        credentials:isDiscordActivity?"omit":"same-origin",cache:"no-store",
+      });
+      if (!check.ok) throw new Error("Ошибка проверки покупки.");
+      const result = await check.json();
+      if (result.status === "complete") {
+        purchaseFeedback = "✓ Покупка подтверждена ботом! Обновляем инвентарь…";
+        await loadSession();
+        return;
+      }
+      if (result.status === "rejected") {
+        throw new Error(({
+          insufficient_funds:"Недостаточно монет.",
+          not_for_sale:"Этот предмет сейчас не продаётся.",
+          unknown_item:"Предмет отсутствует в каталоге.",
+          expired:"Время ожидания истекло."
+        })[result.code] || "Бот отклонил покупку.");
+      }
+    }
+    throw new Error("Покупка ожидает подтверждения бота. Проверь профиль позже, не отправляй повторный запрос.");
+  } catch(error) {
+    purchaseFeedback = error?.message || "Ошибка покупки.";
+  } finally {
+    purchasePending = false;
+    render();
+  }
+}
+
 function profileContent() {
   if (isDiscordActivity && activityState !== "ready") return '<div class="empty"><h3>' + safe(activityState === "error" ? "Ошибка входа" : "Входим через Discord") + '</h3><p>' + safe(activityError || "Подключаем приложение к твоей учётной записи Discord…") + '</p>' + (activityState === "error" ? '<button class="logout" data-activity-retry>Повторить попытку</button>' : '') + '</div>';
   if (!session?.identity) return '<div class="empty"><div class="empty-symbol">' + svg("user", 38) + '</div><h3>Войди через Discord</h3><p>Чтобы открыть личный профиль, сначала подтверди свою учётную запись Discord.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord ' + svg("arrow", 20) + '</a></div>';
@@ -186,19 +249,29 @@ function content() {
 }
 
 function render() {
-  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
   const attachEquipHandlers = (scope = root) => {
     for (const button of scope.querySelectorAll("[data-equip-id]")) {
       button.disabled = equipPending;
       button.addEventListener("click", () => { void handleEquip(button.dataset.equipId); });
     }
   };
+  const attachPurchaseHandlers = (scope = root) => {
+    for (const button of scope.querySelectorAll("[data-buy-id]")) {
+      button.disabled = purchasePending;
+      button.addEventListener("click", () => {
+        void handlePurchase(button.dataset.buyId,Number(button.dataset.buyPrice));
+      });
+    }
+  };
   attachEquipHandlers();
+  attachPurchaseHandlers();
   const redrawShop = () => {
     const mount = root.querySelector("#shop-results");
     if (!mount || !session?.profile) return;
     mount.innerHTML = renderShopResults(session.profile, shopFilters);
     attachEquipHandlers(mount);
+    attachPurchaseHandlers(mount);
   };
   for (const button of root.querySelectorAll("[data-shop-category]")) button.addEventListener("click", () => {
     if (!STORE_CATEGORIES.includes(button.dataset.shopCategory)) return;
