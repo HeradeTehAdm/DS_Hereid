@@ -137,6 +137,40 @@ function startSpiritOutboundSync({ db, config, logger }) {
         }
       }
       if (equippedCount > 0) logger.info(`Spirit equipment synced: ${equippedCount} item(s) equipped.`);
+      // Web purchases only request a transaction. Actual price, ownership,
+      // availability and balance are rechecked by buyItem's SQLite transaction.
+      if (jobs.purchases !== undefined && !Array.isArray(jobs.purchases))
+        throw new Error("Unexpected purchase jobs response.");
+      let purchased = 0;
+      for (const purchase of (jobs.purchases || []).slice(0, 10)) {
+        if (stopped) break;
+        if (!purchase || !/^[a-f0-9-]{36}$/i.test(String(purchase.id)) ||
+            typeof purchase.userId !== "string" || !USER_ID.test(purchase.userId) ||
+            typeof purchase.itemId !== "string" || !/^[a-z][a-z0-9_]{2,99}$/.test(purchase.itemId)) continue;
+        try {
+          const item = economy.getItem(purchase.itemId);
+          const isCosmetic = item && ["banner", "color", "badge", "title"].includes(item.type);
+          const result = isCosmetic ? economy.buyItem(config.guildId, purchase.userId, purchase.itemId)
+            : { ok: false, reason: "invalid_item" };
+          // A repeated delivery after a successful commit cannot debit twice:
+          // buyItem re-checks inventory inside the SQLite transaction.
+          const completed = result.ok || result.reason === "already_owned";
+          const code = result.ok ? "purchased" : result.reason === "already_owned" ? "already_owned" :
+            ["insufficient_funds", "not_for_sale", "invalid_item", "unknown_item"].includes(result.reason) ?
+              result.reason : "rejected";
+          const ack = await client.requestJson(new URL("/api/sync/purchase-result", origin), {
+            method: "POST", headers, body: {
+              id: purchase.id, userId: purchase.userId,
+              status: completed ? "complete" : "rejected", code,
+            },
+          });
+          if (!ack.ok) logger.warn(`Spirit purchase acknowledgement HTTP ${ack.status}.`);
+          else if (completed) purchased++;
+        } catch (error) {
+          logger.warn(`Spirit purchase action sync failed: ${networkErrorText(error)}`);
+        }
+      }
+      if (purchased > 0) logger.info(`Spirit web shop purchases settled: ${purchased}.`);
 
     } catch (error) {
       health = "unhealthy";
