@@ -91,6 +91,9 @@ function art(item, type, large = false) {
   return '<div class="cos-symbol" style="' + cssVars(item) + '" aria-hidden="true">' +
     esc(iconFor(item,type)) + '</div>';
 }
+export function renderCosmeticArtwork(item) {
+  return art(item, item?.type || 'banner');
+}
 function rarity(item) {
   return '<span class="cos-rarity cos-' + rarityClass(item?.rarity) + '">' +
     esc(item?.rarity || "Косметика") + '</span>';
