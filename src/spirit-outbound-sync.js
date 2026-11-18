@@ -1,6 +1,7 @@
 "use strict";
 
 const { createProfileReader } = require("./spirit-profile-api");
+const economy = require("./economy");
 const { createSyncClient } = require("./spirit-sync-http");
 const { diagnoseSpiritConnectivity } = require("./spirit-sync-diagnostics");
 
@@ -106,6 +107,37 @@ function startSpiritOutboundSync({ db, config, logger }) {
         }
       }
       if (updated > 0) logger.info(`Spirit outbound sync completed ${updated} profile update(s).`);
+      // The bot is authoritative for equipment ownership and item types.
+      // Repeated action delivery is safe: equipping the same item is idempotent.
+      const actions = jobs.actions;
+      if (actions !== undefined && !Array.isArray(actions)) throw new Error("Unexpected sync actions response.");
+      let equippedCount = 0;
+      for (const action of (actions || []).slice(0, 10)) {
+        if (stopped) break;
+        if (!action || !/^[a-f0-9-]{36}$/i.test(String(action.id)) ||
+            typeof action.userId !== "string" || !USER_ID.test(action.userId) ||
+            typeof action.itemId !== "string" || !/^[a-z][a-z0-9_]{2,99}$/.test(action.itemId)) continue;
+        try {
+          const item = economy.getItem(action.itemId);
+          const types = new Set(["banner", "color", "badge", "title"]);
+          const result = item && types.has(item.type)
+            ? economy.equipItem(config.guildId, action.userId, action.itemId)
+            : { ok: false, reason: "invalid_item" };
+          const code = result.ok ? "equipped" :
+            ["unknown_item", "not_owned", "invalid_item"].includes(result.reason) ? result.reason : "rejected";
+          const ack = await client.requestJson(new URL("/api/sync/action-result", origin), {
+            method: "POST", headers, body: {
+              id: action.id, userId: action.userId, status: result.ok ? "complete" : "rejected", code,
+            },
+          });
+          if (!ack.ok) logger.warn(`Spirit equipment acknowledgement HTTP ${ack.status}.`);
+          else if (result.ok) equippedCount++;
+        } catch (error) {
+          logger.warn(`Spirit equipment action sync failed: ${networkErrorText(error)}`);
+        }
+      }
+      if (equippedCount > 0) logger.info(`Spirit equipment synced: ${equippedCount} item(s) equipped.`);
+
     } catch (error) {
       health = "unhealthy";
       failures++;
