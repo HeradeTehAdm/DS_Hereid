@@ -20,13 +20,25 @@ function inviteEmbed(guildName) {
   return new EmbedBuilder()
     .setColor(0x8b5cf6)
     .setTitle("🕊️ ДУХ СВОБОДЫ • APP")
-    .setDescription("Твоё пространство внутри Discord! Открой **App Launcher** рядом со строкой сообщений, найди **Дух Свободы** и нажми **Launch**, чтобы запустить Activity без перехода в браузер.\n\n✨ **Профиль** — ник, аватар, уровень и XP\n🏆 **Достижения** — твои награды\n🎨 **Стиль** — персональное оформление\n\nФункции добавляются постепенно.")
+    .setDescription("Твоё пространство внутри Discord! Нажми кнопку **«🚀 Открыть в Discord»** под этим сообщением — приложение запустится прямо в Discord, без внешнего браузера.\n\n✨ **Профиль** — ник, аватар, уровень и XP\n🏆 **Достижения** — твои награды\n🎨 **Стиль** — персональное оформление\n\nФункции добавляются постепенно.")
     .setFooter({ text: guildName + " • Spirit of Freedom" });
 }
 
-function inviteComponents(url) {
+const ACTIVITY_LAUNCH_ID = "spirit:launch";
+
+function inviteComponents() {
   return [new ActionRowBuilder().addComponents(new ButtonBuilder()
-    .setStyle(ButtonStyle.Link).setLabel("Открыть сайт (резервно)").setEmoji("🚀").setURL(url))];
+    .setCustomId(ACTIVITY_LAUNCH_ID)
+    .setStyle(ButtonStyle.Primary)
+    .setLabel("🚀 Открыть в Discord"))];
+}
+
+async function handleLaunchButton(interaction) {
+  if (!interaction.isButton?.() || interaction.customId !== ACTIVITY_LAUNCH_ID) return false;
+  // Discord must acknowledge this button with callback type LAUNCH_ACTIVITY (12).
+  // Never defer/reply before launching, and never pass users a browser URL.
+  await interaction.launchActivity();
+  return true;
 }
 
 function canPublish(channel, botMember) {
@@ -44,8 +56,8 @@ async function publishInvite({ guild, channelId, actorId, url }) {
   const channel = await guild.channels.fetch(channelId).catch(() => null);
   const me = guild.members.me || await guild.members.fetchMe();
   if (!canPublish(channel, me)) throw new Error("Нет доступа к текстовому каналу или прав на отправку сообщений и Embed Links.");
-  const sent = await channel.send({ embeds: [inviteEmbed(guild.name)], components: inviteComponents(cleanUrl), allowedMentions: { parse: [] } });
+  const sent = await channel.send({ embeds: [inviteEmbed(guild.name)], components: inviteComponents(), allowedMentions: { parse: [] } });
   return { messageId: sent.id, channelId: channel.id, actorId, url: sent.url };
 }
 
-module.exports = { appUrl, configuredAppUrl, inviteEmbed, inviteComponents, canPublish, publishInvite };
+module.exports = { appUrl, configuredAppUrl, inviteEmbed, inviteComponents, canPublish, publishInvite, handleLaunchButton, ACTIVITY_LAUNCH_ID };
