@@ -70,9 +70,18 @@ function art(item, type, large = false) {
     // Exact JPEG frames extracted from the bot's original profile-assets.js,
     // served as self-contained SVG wrappers (no third-party image host).
     const match = /^banner_([a-z0-9]+)$/.exec(String(item?.id || ""));
-    const image = match ? '/profile-banners/' + match[1] + '.svg' : '/profile-banners/classic.svg';
+    const original = match ? '/profile-banners/' + match[1] + '.svg' : '/profile-banners/classic.svg';
+    // Original bot artwork stays visible until optional generated WebP art is
+    // uploaded. A missing first CSS background layer is transparent, so the
+    // existing original SVG remains the second visible background layer.
+    const generatedIds = new Set([
+      "banner_ocean", "banner_forest", "banner_sunset", "banner_neon",
+      "banner_ice", "banner_galaxy", "banner_shadow",
+    ]);
+    const generated = generatedIds.has(item?.id) ? '/banners/' + item.id + '.webp' : null;
+    const images = generated ? 'url(' + generated + '),url(' + original + ')' : 'url(' + original + ')';
     return '<div class="cos-banner-art cos-original ' + (large ? "cos-banner-large" : "") +
-      '" style="' + cssVars(item) + 'background-image:url(' + image + ');background-size:cover;background-position:center">' +
+      '" style="' + cssVars(item) + 'background-image:' + images + ';background-size:cover;background-position:center">' +
       '</div>';
   }
   if (type === "color") return '<div class="cos-swatch" style="' + cssVars(item) + '"></div>';
