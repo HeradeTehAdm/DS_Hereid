@@ -1,13 +1,25 @@
 import { json, sessionFromRequest } from "../lib/auth.js";
 import { loadVerifiedProfile, profileConfig } from "../lib/profile.js";
+import { getCachedOrRequest } from "../lib/sync-store.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
   const session = sessionFromRequest(req);
   if (!session) return json(res, 401, { error: "Login required" });
-  const configured = Boolean(profileConfig());
-  const profile = configured ? await loadVerifiedProfile(session.id) : null;
-  const sync = !configured ? "not_configured" : profile ? "connected" : "unavailable";
+  let profile = null;
+  let sync = "not_configured";
+  if (process.env.SPIRIT_SYNC_SECRET && process.env.SPIRIT_SYNC_DATABASE_URL) {
+    try {
+      const result = await getCachedOrRequest(session.id);
+      profile = result.profile;
+      sync = result.sync;
+    } catch {
+      sync = "unavailable";
+    }
+  } else if (profileConfig()) {
+    profile = await loadVerifiedProfile(session.id);
+    sync = profile ? "connected" : "unavailable";
+  }
   return json(res, 200, {
     identity: {
       id: session.id,

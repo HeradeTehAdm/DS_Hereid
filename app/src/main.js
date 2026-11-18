@@ -26,6 +26,7 @@ const sections = [
 const root = document.getElementById("app");
 let current = "home";
 let session = null;
+let refreshTimer = null;
 
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const num = (value) => Number(value || 0).toLocaleString("ru-RU");
@@ -33,6 +34,7 @@ const num = (value) => Number(value || 0).toLocaleString("ru-RU");
 function syncStateLabel() {
   if (!session?.identity) return "ГОСТЕВОЙ РЕЖИМ";
   if (session.sync === "connected") return "СИНХРОНИЗАЦИЯ АКТИВНА";
+  if (session.sync === "pending") return "ОЖИДАЕМ ДАННЫЕ БОТА";
   if (session.sync === "not_configured") return "ПОДКЛЮЧЕНИЕ НЕ НАСТРОЕНО";
   return "НЕТ СВЯЗИ С БОТОМ";
 }
@@ -44,6 +46,11 @@ async function loadSession() {
     else session = null;
   } catch { session = null; }
   render();
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = null;
+  if (session?.sync === "pending") {
+    refreshTimer = setTimeout(() => { void loadSession(); }, 15000);
+  }
 }
 
 function profileContent() {

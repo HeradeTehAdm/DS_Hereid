@@ -39,10 +39,8 @@ function respond(res, status, payload) {
   res.end(body);
 }
 
-function createProfileHandler({ db, guildId, token, logger = console }) {
-  if (!SNOWFLAKE.test(String(guildId)) || typeof token !== "string" ||
-      Buffer.byteLength(token, "utf8") < 32) throw new Error("Invalid Spirit Profile API configuration.");
-
+function createProfileReader({ db, guildId }) {
+  if (!SNOWFLAKE.test(String(guildId))) throw new Error("Invalid Discord guild ID.");
   const getStats = db.prepare(
     "SELECT xp, level, balance FROM member_stats WHERE guild_id=? AND user_id=?",
   );
@@ -66,17 +64,9 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
   const publicCatalog = economy.CATALOG.filter((item) => !item.exclusive && !item.id.startsWith("ach_"))
     .map(sanitizedItem);
 
-  return function profileHandler(req, res) {
-    const url = new URL(req.url, "http://localhost");
-    if (req.method !== "GET" || url.pathname !== ROUTE) return respond(res, 404, { error: "Not found" });
-    if (req.url.length > 300) return respond(res, 400, { error: "Bad request" });
-    if (!authenticated(req, token)) return respond(res, 401, { error: "Unauthorized" });
 
-    const userId = url.searchParams.get("userId");
-    if (url.searchParams.size !== 1 || !SNOWFLAKE.test(String(userId))) {
-      return respond(res, 400, { error: "Bad request" });
-    }
-    try {
+  return function readProfile(userId) {
+    if (!SNOWFLAKE.test(String(userId))) throw new Error("Invalid Discord member ID.");
       const stats = getStats.get(guildId, userId);
       const achievements = getAwards.all(guildId, userId)
         .map((award) => {
@@ -112,8 +102,7 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
           amount: Number(tx.amount) || 0, kind: String(tx.kind), details: String(tx.details || "").slice(0, 200),
           createdAt: tx.created_at,
         }));
-      return respond(res, 200, {
-        profile: {
+      return {
           level: Math.max(0, Number(stats?.level) || 0),
           xp: Math.max(0, Number(stats?.xp) || 0),
           balance: Math.max(0, Number(stats?.balance) || 0),
@@ -125,8 +114,26 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
           redeemedPromos,
           transactions,
           catalog: publicCatalog,
-        },
-      });
+      };
+  };
+}
+
+function createProfileHandler({ db, guildId, token, logger = console }) {
+  if (typeof token !== "string" || Buffer.byteLength(token, "utf8") < 32) {
+    throw new Error("Invalid Spirit Profile API secret.");
+  }
+  const readProfile = createProfileReader({ db, guildId });
+  return function profileHandler(req, res) {
+    const url = new URL(req.url, "http://localhost");
+    if (req.method !== "GET" || url.pathname !== ROUTE) return respond(res, 404, { error: "Not found" });
+    if (req.url.length > 300) return respond(res, 400, { error: "Bad request" });
+    if (!authenticated(req, token)) return respond(res, 401, { error: "Unauthorized" });
+    const userId = url.searchParams.get("userId");
+    if (url.searchParams.size !== 1 || !SNOWFLAKE.test(String(userId))) {
+      return respond(res, 400, { error: "Bad request" });
+    }
+    try {
+      return respond(res, 200, { profile: readProfile(userId) });
     } catch (error) {
       logger.error?.("Spirit Profile API database query failed.", error);
       return respond(res, 500, { error: "Internal error" });
@@ -153,4 +160,4 @@ function startSpiritProfileApi({ db, config, logger }) {
   return { close: () => new Promise((resolve) => server.close(resolve)) };
 }
 
-module.exports = { ROUTE, signature, authenticated, createProfileHandler, startSpiritProfileApi };
+module.exports = { ROUTE, signature, authenticated, createProfileReader, createProfileHandler, startSpiritProfileApi };
