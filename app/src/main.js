@@ -30,6 +30,13 @@ let session = null;
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const num = (value) => Number(value || 0).toLocaleString("ru-RU");
 
+function syncStateLabel() {
+  if (!session?.identity) return "ГОСТЕВОЙ РЕЖИМ";
+  if (session.sync === "connected") return "СИНХРОНИЗАЦИЯ АКТИВНА";
+  if (session.sync === "not_configured") return "ПОДКЛЮЧЕНИЕ НЕ НАСТРОЕНО";
+  return "НЕТ СВЯЗИ С БОТОМ";
+}
+
 async function loadSession() {
   try {
     const response = await fetch("/api/me", { credentials: "same-origin", headers: { "Accept": "application/json" } });
@@ -41,7 +48,7 @@ async function loadSession() {
 
 function profileContent() {
   if (!session?.identity) return '<div class="empty"><div class="empty-symbol">' + svg("user", 38) + '</div><h3>Войди через Discord</h3><p>Чтобы открыть личный профиль, сначала подтверди свою учётную запись Discord.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord ' + svg("arrow", 20) + '</a></div>';
-if (!session?.profile) return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">DISCORD ПОДКЛЮЧЁН</span><h2>' + safe(session.identity.displayName) + '</h2><p>@' + safe(session.identity.username) + '</p></div></div><div class="empty"><div class="empty-symbol">' + svg("spark", 34) + '</div><h3>Аккаунт подключён!</h3><p>Ты успешно авторизован через Discord. Уровень, XP, баланс и награды появятся после безопасного подключения базы бота.</p><span class="tag">Синхронизация профиля — следующий этап</span><div><button class="logout" data-logout>Выйти из аккаунта</button></div></div>';
+if (!session?.profile) return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">DISCORD ПОДКЛЮЧЁН</span><h2>' + safe(session.identity.displayName) + '</h2><p>@' + safe(session.identity.username) + '</p></div></div><div class="empty"><div class="empty-symbol">' + svg("spark", 34) + '</div><h3>Аккаунт подключён!</h3><p>Ты успешно авторизован через Discord. Уровень, XP и награды появятся после подключения. Проверь статус синхронизации и повтори запрос.</p><span class="tag">Синхронизация профиля — следующий этап</span><div><button class="logout" data-retry>Проверить соединение</button> <button class="logout" data-logout>Выйти из аккаунта</button></div></div>';
   const p = session.profile;
   const level = Math.max(0, Number(p.level || 0));
   const xp = Math.max(0, Number(p.xp || 0));
@@ -125,7 +132,13 @@ function content() {
 }
 
 function render() {
-  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> APP PREVIEW</span></header><main id="content">' + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  const retry = root.querySelector("[data-retry]");
+  if (retry) retry.addEventListener("click", async () => {
+    retry.disabled = true;
+    retry.textContent = "Проверяю…";
+    await loadSession();
+  });
   const logout = root.querySelector("[data-logout]");
   if (logout) logout.addEventListener("click", async () => {
     logout.disabled = true;
