@@ -1,4 +1,6 @@
 import "./style.css";
+import "./cosmetic-profile.css";
+import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
 
 const svg = (name, size = 22) => {
@@ -18,6 +20,7 @@ const sections = [
   { id: "profile", label: "Профиль", icon: "user" },
   { id: "achievements", label: "Награды", icon: "trophy" },
   { id: "inventory", label: "Коллекция", icon: "spark" },
+  { id: "cosmetics", label: "Косметика", icon: "spark" },
   { id: "shop", label: "Магазин", icon: "spark" },
   { id: "quests", label: "Задания", icon: "trophy" },
   { id: "promos", label: "Промокоды", icon: "spark" },
@@ -62,13 +65,7 @@ function profileContent() {
   if (isDiscordActivity && activityState !== "ready") return '<div class="empty"><h3>' + safe(activityState === "error" ? "Ошибка входа" : "Входим через Discord") + '</h3><p>' + safe(activityError || "Подключаем приложение к твоей учётной записи Discord…") + '</p>' + (activityState === "error" ? '<button class="logout" data-activity-retry>Повторить попытку</button>' : '') + '</div>';
   if (!session?.identity) return '<div class="empty"><div class="empty-symbol">' + svg("user", 38) + '</div><h3>Войди через Discord</h3><p>Чтобы открыть личный профиль, сначала подтверди свою учётную запись Discord.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord ' + svg("arrow", 20) + '</a></div>';
 if (!session?.profile) return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">DISCORD ПОДКЛЮЧЁН</span><h2>' + safe(session.identity.displayName) + '</h2><p>@' + safe(session.identity.username) + '</p></div></div><div class="empty"><div class="empty-symbol">' + svg("spark", 34) + '</div><h3>Аккаунт подключён!</h3><p>Ты успешно авторизован через Discord. Уровень, XP и награды появятся после подключения. Проверь статус синхронизации и повтори запрос.</p><span class="tag">Синхронизация профиля — следующий этап</span><div><button class="logout" data-retry>Проверить соединение</button> <button class="logout" data-logout>Выйти из аккаунта</button></div></div>';
-  const p = session.profile;
-  const level = Math.max(0, Number(p.level || 0));
-  const xp = Math.max(0, Number(p.xp || 0));
-  const base = 100 * level * level;
-  const span = 100 * ((level + 1) ** 2 - level ** 2);
-  const progress = Math.max(0, Math.min(100, (xp - base) / span * 100));
-  return '<div class="profile-card"><div class="profile-avatar">' + safe((session.identity.displayName || "?").slice(0, 1)) + '</div><div><span class="eyebrow">ПРОФИЛЬ УЧАСТНИКА</span><h2>' + safe(session.identity.displayName || "Участник") + '</h2><p>' + safe(p.title || "Участник сообщества") + '</p></div></div><div class="stat-grid"><div class="stat"><span>УРОВЕНЬ</span><strong>' + num(level) + '</strong></div><div class="stat"><span>ОПЫТ</span><strong>' + num(xp) + ' XP</strong></div><div class="stat"><span>МОНЕТЫ</span><strong>' + num(p.balance) + '</strong></div></div>' + (p.rank ? '<div class="section-title"><h2>Активность и ранг</h2></div><div class="stat-grid"><div class="stat"><span>РАНГ</span><strong>' + safe(p.rank.rank) + '</strong></div><div class="stat"><span>СООБЩЕНИЯ</span><strong>' + num(p.rank.messages) + '</strong></div><div class="stat"><span>АКТИВНЫЕ ДНИ</span><strong>' + num(p.rank.activeDays) + '</strong></div></div>' : '') + '<div class="progress-label"><span>До следующего уровня</span><span>' + Math.round(progress) + '%</span></div><div class="progress"><span style="width:' + progress + '%"></span></div>';
+  return renderCosmeticProfile(session);
 }
 
 function syncPage(title, description, body) {
@@ -91,20 +88,7 @@ function itemCards(items, empty = "Здесь пока ничего нет.") {
 
 function extendedContent() {
   const p = session?.profile;
-  if (current === "inventory") {
-    const equipped = p?.equipped || {};
-    const styles = ["title", "badge", "banner", "color"].map((key) => ({
-      key, label: ({title:"Титул",badge:"Значок",banner:"Баннер",color:"Цвет"})[key],
-      item: equipped[key],
-    }));
-    return syncPage("Моя коллекция", "Приобретённые и полученные предметы.",
-      '<div class="section-title"><h2>Выбрано для профиля</h2></div>' +
-      '<div class="feature-grid">' + styles.map(x =>
-        '<div class="feature"><strong>' + x.label + '</strong><small>' +
-        safe(x.item?.name || "Не установлено") + '</small></div>').join("") + '</div>' +
-      '<div class="section-title"><h2>Инвентарь</h2><span>' + (p?.inventory?.length || 0) + '</span></div>' +
-      itemCards(p?.inventory));
-  }
+  if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", renderCosmeticsGallery(session));
   if (current === "shop") return syncPage("Магазин", "Каталог бота. Покупки пока доступны через команду /shop в Discord.",
     itemCards(p?.catalog, "Каталог пока недоступен"));
   if (current === "quests") return syncPage("Ежедневные задания", "Текущий прогресс заданий из Discord.",
@@ -128,8 +112,8 @@ function extendedContent() {
 }
 
 function content() {
-  if (["inventory", "shop", "quests", "promos", "history"].includes(current)) return extendedContent();
-  if (current === "profile") return '<section class="heading"><span class="eyebrow">МОЙ МИР</span><h1>Профиль <em>участника</em></h1><p>Твоя история и достижения в одном месте.</p></section>' + profileContent();
+  if (["inventory", "cosmetics", "shop", "quests", "promos", "history"].includes(current)) return extendedContent();
+  if (current === "profile") return profileContent();
   if (current === "achievements") {
     const heading = '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section>';
     if (isDiscordActivity && activityState !== "ready") return heading + '<div class="empty"><h3>Подключаем Discord</h3><p>' + safe(activityError || "Проверяем учётную запись…") + '</p></div>';
