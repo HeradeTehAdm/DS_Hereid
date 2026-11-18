@@ -3,6 +3,8 @@
 const http = require("node:http");
 const { createHmac, timingSafeEqual } = require("node:crypto");
 const { ACHIEVEMENT_DEFS } = require("./achievement-defs");
+const economy = require("./economy");
+const { snapshot } = require("./rank-system");
 
 const ROUTE = "/api/v1/spirit/profile";
 const SNOWFLAKE = /^\d{17,20}$/;
@@ -47,7 +49,22 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
   const getAwards = db.prepare(
     "SELECT achievement_id, awarded_at FROM member_achievements WHERE guild_id=? AND user_id=? ORDER BY awarded_at DESC LIMIT 200",
   );
+  const getRank = db.prepare(
+    "SELECT joined_at, message_count, active_days, voice_seconds, voice_started_at, last_activity_at, current_rank FROM member_rank_activity WHERE guild_id=? AND user_id=?",
+  );
+  const getRedeemed = db.prepare(
+    "SELECT code, redeemed_at FROM promo_redemptions WHERE guild_id=? AND user_id=? ORDER BY redeemed_at DESC LIMIT 40",
+  );
+  const getTodayQuests = db.prepare(
+    "SELECT task_key, progress, completed_at FROM economy_daily_quests WHERE guild_id=? AND user_id=? AND day_key=?",
+  );
   const definitions = new Map(ACHIEVEMENT_DEFS.map((def) => [def.id, def]));
+  const sanitizedItem = (item) => ({
+    id: item.id, name: item.name, category: item.category, description: item.description,
+    price: item.price, type: item.type, rarity: economy.getItemRarity(item),
+  });
+  const publicCatalog = economy.CATALOG.filter((item) => !item.exclusive && !item.id.startsWith("ach_"))
+    .map(sanitizedItem);
 
   return function profileHandler(req, res) {
     const url = new URL(req.url, "http://localhost");
@@ -69,12 +86,45 @@ function createProfileHandler({ db, guildId, token, logger = console }) {
             badge: def.badge, rarity: def.rarity, awardedAt: award.awarded_at };
         })
         .filter(Boolean);
+      const rank = getRank.get(guildId, userId);
+      const activity = rank ? { ...snapshot(rank), rank: rank.current_rank } : null;
+      const inventory = economy.getInventory(guildId, userId).slice(0, 400).map((row) => ({
+        ...sanitizedItem(row.item), acquiredAt: row.purchased_at,
+      }));
+      const cosmetics = economy.getCustomProfile(guildId, userId);
+      const equipped = Object.fromEntries(Object.entries(cosmetics).map(([slot, item]) =>
+        [slot, item ? sanitizedItem(item) : null]));
+      const dayKey = economy.moscowDayKey();
+      const today = new Map(getTodayQuests.all(guildId, userId, dayKey).map((row) => [row.task_key, row]));
+      const quests = economy.DAILY_QUESTS.map((quest) => {
+        const progress = today.get(quest.key);
+        return { key: quest.key, name: quest.name, description: quest.description,
+          target: quest.target, reward: quest.reward,
+          progress: Math.max(0, Math.min(quest.target, Number(progress?.progress || 0))),
+          completed: progress?.completed_at != null };
+      });
+      const redeemedPromos = getRedeemed.all(guildId, userId).map((row) => ({
+        code: row.code, redeemedAt: row.redeemed_at,
+      }));
+      const transactions = economy.getTransactions(guildId, userId, 25)
+        .filter((tx) => !String(tx.kind).startsWith("casino_"))
+        .map((tx) => ({
+          amount: Number(tx.amount) || 0, kind: String(tx.kind), details: String(tx.details || "").slice(0, 200),
+          createdAt: tx.created_at,
+        }));
       return respond(res, 200, {
-        profile: stats ? {
+        profile: (stats || rank || inventory.length) ? {
           level: Math.max(0, Number(stats.level) || 0),
           xp: Math.max(0, Number(stats.xp) || 0),
           balance: Math.max(0, Number(stats.balance) || 0),
           achievements,
+          rank: activity,
+          inventory,
+          equipped,
+          quests,
+          redeemedPromos,
+          transactions,
+          catalog: publicCatalog,
         } : null,
       });
     } catch (error) {
