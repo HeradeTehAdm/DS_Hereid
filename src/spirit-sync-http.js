@@ -20,7 +20,7 @@ function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
     if (family !== 4) return [null];
     try {
       const found = await dns.lookup(hostname, { all: true, family: 4 });
-      const list = [...new Set(found.map(x => x.address))].filter(x => /^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(x));
+      const list = [...new Set(found.map(x => x.address))].filter(x => /^\d{1,3}(?:\.\d{1,3}){3}$/.test(x));
       return list.length > 0 ? list.slice(0, 3) : [null];
     } catch { return [null]; }
   }
