@@ -1,10 +1,11 @@
 "use strict";
 
 const { createProfileReader } = require("./spirit-profile-api");
+const { createSyncClient } = require("./spirit-sync-http");
+const { diagnoseSpiritConnectivity } = require("./spirit-sync-diagnostics");
 
 const INTERVAL_MS = 30000;
 const USER_ID = /^\d{17,20}$/;
-const REQUEST_TIMEOUT_MS = 20000;
 function networkErrorText(error) {
   const code = error?.cause?.code;
   if (typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code)) return code;
@@ -25,6 +26,10 @@ function startSpiritOutboundSync({ db, config, logger }) {
   if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" ||
       url.search || url.hash) throw new Error("SPIRIT_SYNC_URL must be an HTTPS origin without path.");
   const origin = url.origin;
+  const preferredFamily = Number(process.env.SPIRIT_SYNC_IP_FAMILY || "4");
+  if (![0, 4, 6].includes(preferredFamily)) throw new Error("SPIRIT_SYNC_IP_FAMILY must be 0, 4 or 6.");
+  const client = createSyncClient({ family: preferredFamily });
+  let lastNetworkDiagnosticAt = 0;
   const readProfile = createProfileReader({ db, guildId: config.guildId });
   let active = false;
   let stopped = false;
@@ -34,27 +39,20 @@ function startSpiritOutboundSync({ db, config, logger }) {
     if (active || stopped) return;
     active = true;
     try {
-      const jobsResponse = await fetch(origin + "/api/sync/jobs", {
-        headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), redirect: "error", cache: "no-store",
-      });
+      const jobsResponse = await client.requestJson(new URL("/api/sync/jobs", origin), { headers });
       if (!jobsResponse.ok) {
         logger.warn(`Spirit outbound sync jobs request returned HTTP ${jobsResponse.status}.`);
         return;
       }
-      const jobs = await jobsResponse.json();
+      const jobs = jobsResponse.data;
       if (!Array.isArray(jobs?.userIds)) throw new Error("Unexpected sync jobs response.");
       for (const userId of jobs.userIds.slice(0, 10)) {
         if (stopped) break;
         if (typeof userId !== "string" || !USER_ID.test(userId)) continue;
         try {
           const profile = readProfile(userId);
-          const result = await fetch(origin + "/api/sync/result", {
-            method: "POST",
-            headers: { ...headers, "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, profile }),
-            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-            redirect: "error",
-            cache: "no-store",
+          const result = await client.requestJson(new URL("/api/sync/result", origin), {
+            method: "POST", headers, body: { userId, profile },
           });
           if (!result.ok) logger.warn(`Spirit outbound sync update failed (HTTP ${result.status}).`);
         } catch (error) {
@@ -62,7 +60,11 @@ function startSpiritOutboundSync({ db, config, logger }) {
         }
       }
     } catch (error) {
-      logger.warn(`Spirit outbound sync polling failed: ${networkErrorText(error)}; check outbound HTTPS/DNS access to ${url.hostname}:443.`);
+      logger.warn(`Spirit outbound sync polling failed: ${networkErrorText(error)}; target ${url.hostname}:443, IP family ${preferredFamily || "auto"}.`);
+      if (Date.now() - lastNetworkDiagnosticAt > 60 * 60 * 1000) {
+        lastNetworkDiagnosticAt = Date.now();
+        void diagnoseSpiritConnectivity(url.hostname, logger).catch(() => {});
+      }
     } finally {
       active = false;
     }
@@ -76,6 +78,7 @@ function startSpiritOutboundSync({ db, config, logger }) {
     close: async () => {
       stopped = true;
       clearInterval(timer);
+      client.close();
     },
   };
 }

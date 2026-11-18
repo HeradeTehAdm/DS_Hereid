@@ -44,5 +44,8 @@ jobs:
       - run: node --check src/spirit-app.js
       - run: node --check src/spirit-profile-api.js
       - run: node --check src/spirit-outbound-sync.js
+      - run: node --check src/spirit-sync-http.js
+      - run: node --check src/spirit-sync-diagnostics.js
+      - run: node scripts/test-spirit-sync-http.js
       - run: node scripts/test-spirit-app.js
       - run: node scripts/test-spirit-profile-api.js
