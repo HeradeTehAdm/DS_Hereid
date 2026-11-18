@@ -9,11 +9,16 @@ const REQUEST_TIMEOUT_MS = 10000;
 
 // Native HTTPS supports a deterministic IPv4 connection on hosts with broken IPv6.
 // TLS verification and SNI stay enabled; never fall back to plaintext HTTP.
-function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
+function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS, preferredIpv4 = [] } = {}) {
   if (![0, 4, 6].includes(family)) throw new Error("Invalid IP family.");
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60000) {
     throw new Error("Invalid network timeout.");
   }
+  if (!Array.isArray(preferredIpv4) || preferredIpv4.length > 8 ||
+      preferredIpv4.some(address => isIP(address) !== 4)) {
+    throw new Error("Invalid preferred IPv4 address list.");
+  }
+  const preferred = [...new Set(preferredIpv4)];
   const agent = new https.Agent({ keepAlive: true, family: family || undefined, maxSockets: 2 });
   // Keep TLS verification tied to the original hostname while retrying a second
   // independently resolved IPv4 address if the first Anycast route times out.
@@ -22,8 +27,11 @@ function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
     try {
       const found = await dns.lookup(hostname, { all: true, family: 4 });
       const list = [...new Set(found.map(x => x.address))].filter(x => isIP(x) === 4);
-      return list.length > 0 ? list.slice(0, 3) : [null];
-    } catch { return [null]; }
+      // Prefer routes confirmed reachable from the hosting network, while
+      // retaining DNS addresses in case a provider changes its edge IPs.
+      const addresses = [...new Set([...preferred, ...list])].slice(0, 8);
+      return addresses.length > 0 ? addresses : [null];
+    } catch { return preferred.length > 0 ? preferred : [null]; }
   }
 
   async function requestJson(url, { method = "GET", headers = {}, body } = {}) {
@@ -91,7 +99,7 @@ function createSyncClient({ family = 4, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
         // Retry only network establishment errors, never HTTP responses,
         // failed certificate verification, invalid JSON or oversized bodies.
         const code = error?.code || error?.cause?.code;
-        const retryable = ["ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "EHOSTUNREACH", "ENETUNREACH", "ECONNREFUSED"].includes(code) ||
+        const retryable = ["ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "EHOSTUNREACH", "ENETUNREACH", "ECONNREFUSED", "ECONNRESET", "ABORT_ERR"].includes(code) ||
           error?.name === "TimeoutError" || error?.name === "AbortError";
         if (!retryable || address === null) throw error;
       }
