@@ -67,9 +67,13 @@ const equipped = (profile, type, item) => Boolean(profile.equipped?.[type] && pr
 function art(item, type, large = false) {
   const base = '<span class="cos-stars" aria-hidden="true">✦ · ✧ · ✦</span>';
   if (type === "banner") {
-    return '<div class="cos-banner-art ' + (large ? "cos-banner-large" : "") +
-      '" style="' + cssVars(item) + '"><span class="cos-orbit" aria-hidden="true"></span>' +
-      base + '</div>';
+    // Exact JPEG frames extracted from the bot's original profile-assets.js,
+    // served as self-contained SVG wrappers (no third-party image host).
+    const match = /^banner_([a-z0-9]+)$/.exec(String(item?.id || ""));
+    const image = match ? '/profile-banners/' + match[1] + '.svg' : '/profile-banners/classic.svg';
+    return '<div class="cos-banner-art cos-original ' + (large ? "cos-banner-large" : "") +
+      '" style="' + cssVars(item) + 'background-image:url(' + image + ');background-size:cover;background-position:center">' +
+      '</div>';
   }
   if (type === "color") return '<div class="cos-swatch" style="' + cssVars(item) + '"></div>';
   return '<div class="cos-symbol" style="' + cssVars(item) + '" aria-hidden="true">' +
@@ -85,8 +89,9 @@ function card(item,type,profile) {
     esc(item.description || item.name) + '">' + art(item,type) +
     '<div class="cos-item-bottom"><strong>' + esc(stripPrefix(item)) +
     '</strong>' + rarity(item) + '</div>' +
-    (chosen ? '<span class="cos-equipped">✓ Экипировано</span>' : '') +
-    '</div>';
+    (chosen ? '<span class="cos-equipped">✓ Экипировано</span>' :
+      '<button type="button" class="cos-equip-button" data-equip-id="' + esc(item.id) +
+      '">Экипировать</button>') + '</div>';
 }
 function tiles(profile, type, limit=0) {
   const list = owned(profile,type);
@@ -155,7 +160,7 @@ export function renderCosmeticProfile(session) {
     esc(title ? stripPrefix(title) : "Титул не выбран") + '</strong>' +
     (title ? rarity(title) : '') + '</div></div></section>' +
     equippedSummary(p) + '</div>' + gallery(p) +
-    '<p class="cos-disclaimer">Предметы и выбранное оформление загружены из Discord-бота. Пока изменить экипировку можно командой /shop в Discord.</p></div>';
+    '<p class="cos-disclaimer">Предметы и выбранное оформление загружены из Discord-бота. Нажми «Экипировать», чтобы применить принадлежащий тебе предмет.</p></div>';
 }
 export function renderCosmeticsGallery(session) {
   const p = session.profile;
@@ -163,5 +168,5 @@ export function renderCosmeticsGallery(session) {
     '<div class="cos-gallery-heading"><h1>Косметика <em>профиля</em></h1>' +
     '<p>Все твои баннеры, цвета, значки и титулы из Discord.</p></div>' +
     equippedSummary(p) + gallery(p,true) +
-    '<p class="cos-disclaimer">Предметы отображаются только при наличии в инвентаре. Управление экипировкой пока доступно в /shop Discord-бота.</p></div>';
+    '<p class="cos-disclaimer">Показаны только твои предметы из Discord. Выбор экипировки подтверждается ботом и автоматически обновляет профиль.</p></div>';
 }

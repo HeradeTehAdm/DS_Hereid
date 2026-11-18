@@ -33,6 +33,8 @@ let session = null;
 let refreshTimer = null;
 let activityState = isDiscordActivity ? "connecting" : "browser";
 let activityError = "";
+let equipPending = false;
+let equipFeedback = "";
 
 const safe = (text) => String(text ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const num = (value) => Number(value || 0).toLocaleString("ru-RU");
@@ -58,6 +60,57 @@ async function loadSession() {
   refreshTimer = null;
   if (session?.sync === "pending") {
     refreshTimer = setTimeout(() => { void loadSession(); }, 15000);
+  }
+}
+
+async function handleEquip(itemId) {
+  if (equipPending || !session?.profile) return;
+  equipPending = true;
+  equipFeedback = "Отправляем запрос на экипировку в Discord…";
+  render();
+  const headers = {
+    "Accept": "application/json", "Content-Type": "application/json",
+    "x-spirit-action": "equip", ...activityAuthHeaders(),
+  };
+  try {
+    const response = await fetch(activityApiPath("/api/equip"), {
+      method: "POST", headers, body: JSON.stringify({ itemId }),
+      credentials: isDiscordActivity ? "omit" : "same-origin", cache: "no-store",
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.id) {
+      if (response.status === 409) throw new Error("Предыдущий запрос ещё выполняется.");
+      if (response.status === 403) throw new Error("Предмет не принадлежит тебе или профиль нужно обновить.");
+      throw new Error("Не удалось отправить запрос. Проверь соединение.");
+    }
+    equipFeedback = "Запрос принят. Бот проверяет предмет и применяет оформление…";
+    render();
+    const deadline = Date.now() + 110000;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const statusResponse = await fetch(activityApiPath("/api/equip?id=" + encodeURIComponent(payload.id)), {
+        headers: { "Accept": "application/json", ...activityAuthHeaders() },
+        credentials: isDiscordActivity ? "omit" : "same-origin", cache: "no-store",
+      });
+      if (!statusResponse.ok) throw new Error("Не удалось получить состояние запроса.");
+      const status = await statusResponse.json();
+      if (status.status === "complete") {
+        equipFeedback = "✓ Экипировка применена! Обновляем профиль…";
+        await loadSession();
+        return;
+      }
+      if (status.status === "rejected") {
+        throw new Error(status.code === "not_owned" ? "Предмет больше не находится в инвентаре." :
+          status.code === "expired" ? "Истекло время выполнения. Попробуй ещё раз." :
+          "Бот отклонил смену оформления.");
+      }
+    }
+    throw new Error("Бот пока не подтвердил запрос. Проверь соединение и повтори позже.");
+  } catch (error) {
+    equipFeedback = error?.message || "Ошибка экипировки.";
+  } finally {
+    equipPending = false;
+    render();
   }
 }
 
@@ -131,7 +184,11 @@ function content() {
 }
 
 function render() {
-  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  for (const button of root.querySelectorAll("[data-equip-id]")) {
+    button.disabled = equipPending;
+    button.addEventListener("click", () => { void handleEquip(button.dataset.equipId); });
+  }
   const retryActivity = root.querySelector("[data-activity-retry]");
   if (retryActivity) retryActivity.addEventListener("click", () => { void bootstrap(); });
   const retry = root.querySelector("[data-retry]");
