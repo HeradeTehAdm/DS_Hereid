@@ -22,6 +22,7 @@ async function main() {
   const lookup = dns.lookup;
   const request = https.request;
   const selected = [];
+  const lookupShapes = [];
   const fallbackClient = createSyncClient({ family: 4, timeoutMs: 1200 });
   try {
     dns.lookup = async () => [
@@ -32,8 +33,20 @@ async function main() {
       assert.equal(url.hostname, "duh-svobody-app.vercel.app", "TLS hostname must not change during address fallback");
       const stream = new EventEmitter();
       stream.end = () => {
-        options.lookup(url.hostname, {}, (err, address) => {
+        // Exercise Node.js 22's all:true lookup shape, which previously
+        // caused ERR_INVALID_IP_ADDRESS in production.
+        options.lookup(url.hostname, { all: true }, (err, records) => {
           assert.equal(err, null);
+          assert.ok(Array.isArray(records));
+          assert.equal(records.length, 1);
+          assert.equal(records[0].family, 4);
+          const address = records[0].address;
+          options.lookup(url.hostname, { family: 4 }, (secondErr, singleAddress, family) => {
+            assert.equal(secondErr, null);
+            assert.equal(singleAddress, address);
+            assert.equal(family, 4);
+          });
+          lookupShapes.push(records);
           selected.push(address);
           queueMicrotask(() => {
             if (address === "192.0.2.10") {
@@ -53,6 +66,7 @@ async function main() {
     const result = await fallbackClient.requestJson(new URL("https://duh-svobody-app.vercel.app/api/sync/jobs"));
     assert.deepEqual(result.data, { ok: true });
     assert.deepEqual(selected, ["192.0.2.10", "192.0.2.11"]);
+    assert.equal(lookupShapes.length, 2);
   } finally {
     dns.lookup = lookup;
     https.request = request;
