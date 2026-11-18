@@ -48,7 +48,15 @@ function startSpiritOutboundSync({ db, config, logger }) {
   const origin = url.origin;
   const preferredFamily = Number(process.env.SPIRIT_SYNC_IP_FAMILY || "4");
   if (![0, 4, 6].includes(preferredFamily)) throw new Error("SPIRIT_SYNC_IP_FAMILY must be 0, 4 or 6.");
-  const client = createSyncClient({ family: preferredFamily });
+  // These two Vercel routes were verified from this Pterodactyl network on
+  // 2026-11-18. They are fallback preferences, not permanent infrastructure.
+  // Keep the original HTTPS hostname for certificate validation and SNI.
+  const defaultPreferredIpv4 = url.hostname === "duh-svobody-app.vercel.app"
+    ? ["64.29.17.195", "216.198.79.195"] : [];
+  const override = process.env.SPIRIT_SYNC_PREFERRED_IPV4;
+  const preferredIpv4 = override === undefined ? defaultPreferredIpv4 :
+    override.split(",").map(value => value.trim()).filter(Boolean);
+  const client = createSyncClient({ family: preferredFamily, preferredIpv4 });
   let lastNetworkDiagnosticAt = 0;
   const readProfile = createProfileReader({ db, guildId: config.guildId });
   let active = false;
