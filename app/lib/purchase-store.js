@@ -75,21 +75,19 @@ export async function finishPurchaseAction(id,userId,status,code) {
       !["complete","rejected"].includes(status) ||
       typeof code !== "string" || !/^[a-z_]{2,35}$/.test(code)) return false;
   const sql = await database();
-  const updated = await sql`UPDATE spirit_purchase_actions
-    SET status=${status}, result_code=${code}, updated_at=now()
-    WHERE id=${id}::uuid AND user_id=${userId} AND status='pending'
-    RETURNING id`;
+  const updated = await sql`WITH settled AS (
+    UPDATE spirit_purchase_actions SET status=${status},result_code=${code},updated_at=now()
+    WHERE id=${id}::uuid AND user_id=${userId} AND status='pending' RETURNING user_id
+  ), invalidated AS (
+    DELETE FROM spirit_profiles WHERE user_id IN (SELECT user_id FROM settled) AND ${status}='complete'
+  ), refreshed AS (
+    INSERT INTO spirit_requests (user_id,status,requested_at,updated_at)
+    SELECT user_id,'pending',now(),now() FROM settled WHERE ${status}='complete'
+    ON CONFLICT(user_id) DO UPDATE SET status='pending',requested_at=now(),updated_at=now()
+  ) SELECT user_id FROM settled`;
   if (updated.length === 0) {
     const previous = await purchaseActionStatus(userId,id);
     return Boolean(previous && previous.status === status && previous.code === code);
-  }
-  if (status === "complete") {
-    await sql`DELETE FROM spirit_profiles WHERE user_id=${userId}`;
-    await sql`
-      INSERT INTO spirit_requests (user_id,status,requested_at,updated_at)
-      VALUES (${userId},'pending',now(),now())
-      ON CONFLICT(user_id) DO UPDATE SET
-        status='pending',requested_at=now(),updated_at=now()`;
   }
   return true;
 }

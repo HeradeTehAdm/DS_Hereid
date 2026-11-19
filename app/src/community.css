@@ -58,3 +58,18 @@ button.feature:hover {background:#1c3040; border-color:#73988e}
 @media(prefers-reduced-motion:reduce) {
   *,*::before,*::after {animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:0s!important; scroll-behavior:auto!important}
 }
+.bot-avatar {position:relative; overflow:hidden; flex:none; font-weight:800}
+.bot-avatar img {position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.topbar .bot-avatar {display:none}
+.section-nav [hidden] {display:none}
+.promo-form {display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); align-items:end; gap:16px; margin:20px 0; padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface)}
+.promo-form label {display:grid; gap:8px; font-size:14px}
+.promo-form input {min-width:0; background:var(--night); color:var(--text); padding:12px; border:1px solid #68788a; border-radius:10px; font:inherit}
+.promo-form .primary {justify-content:center; margin:0}
+.promo-form button:disabled {opacity:.65}
+.promo-form [role=status] {grid-column:1/-1; margin:0}
+@media(max-width:800px) {
+  .topbar .bot-avatar {display:grid; width:32px; height:32px; border-radius:10px}
+  .topbar .section-name {margin-right:auto}
+  .topbar {gap:8px}
+}

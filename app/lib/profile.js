@@ -82,6 +82,7 @@ export function validatedProfile(value) {
       !transactions.every((t) => t && Number.isSafeInteger(t.amount) &&
         text(t.kind, 70) && text(t.details, 200) && nonNegativeInteger(t.createdAt))) return null;
   return {
+    ...(value.canManagePromos === true ? {canManagePromos:true} : {}),
     level: value.level, xp: value.xp, balance: value.balance, achievements,
     rank, inventory: inventory.map((i) => ({ id:i.id,name:i.name,category:i.category,description:i.description,
       price:i.price,type:i.type,rarity:i.rarity,...(i.value === undefined ? {} : {value:i.value}) })),

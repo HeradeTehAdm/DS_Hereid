@@ -2,6 +2,7 @@ import "./style.css";
 import "./cosmetic-profile.css";
 import "./shop-view.css";
 import "./community.css";
+import { bindPromo, promoForm } from "./web-promos.js";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
@@ -32,6 +33,7 @@ const sections = [
   { id: "cosmetics", label: "Косметика", icon: "cosmetics" },
   { id: "shop", label: "Магазин", icon: "shop" },
   { id: "quests", label: "Задания", icon: "quests" },
+  { id: "admin", label: "Администрация", icon: "quests" },
   { id: "promos", label: "Промокоды", icon: "promos" },
   { id: "history", label: "История", icon: "history" },
 ];
@@ -40,6 +42,8 @@ const root = document.getElementById("app");
 let current = "home";
 let session = null;
 let refreshTimer = null;
+let profileAttempts = 0;
+const checkDelay = attempt => document.hidden ? 15000 : Math.min(8000, 1200 * 2 ** Math.min(attempt, 3));
 let activityState = isDiscordActivity ? "connecting" : "browser";
 let activityError = "";
 let equipPending = false;
@@ -71,8 +75,8 @@ async function loadSession() {
   if (refreshTimer) clearTimeout(refreshTimer);
   refreshTimer = null;
   if (session?.sync === "pending") {
-    refreshTimer = setTimeout(() => { void loadSession(); }, 15000);
-  }
+    refreshTimer = setTimeout(() => { void loadSession(); }, checkDelay(profileAttempts++));
+  } else profileAttempts = 0;
 }
 
 async function handleEquip(itemId) {
@@ -98,8 +102,9 @@ async function handleEquip(itemId) {
     equipFeedback = "Запрос принят. Бот проверяет предмет и применяет оформление…";
     render();
     const deadline = Date.now() + 110000;
+    let statusAttempt = 0;
     while (Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, checkDelay(statusAttempt++)));
       const statusResponse = await fetch(activityApiPath("/api/equip?id=" + encodeURIComponent(payload.id)), {
         headers: { "Accept": "application/json", ...activityAuthHeaders() },
         credentials: isDiscordActivity ? "omit" : "same-origin", cache: "no-store",
@@ -156,8 +161,9 @@ async function handlePurchase(itemId, price) {
     purchaseFeedback = "Бот проверяет баланс и оформляет покупку…";
     render();
     const deadline = Date.now() + 110000;
+    let statusAttempt = 0;
     while (Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve,3000));
+      await new Promise(resolve => setTimeout(resolve, checkDelay(statusAttempt++)));
       const check = await fetch(activityApiPath("/api/purchase?id="+encodeURIComponent(data.id)),{
         headers:{Accept:"application/json",...activityAuthHeaders()},
         credentials:isDiscordActivity?"omit":"same-origin",cache:"no-store",
@@ -223,10 +229,12 @@ function extendedContent() {
       ' · ' + (q.completed ? 'Выполнено' : 'В процессе') +
       ' · +' + num(q.reward) + ' 🪙</span></div>').join("") + '</div>' :
       '<div class="empty"><h3>Пока нет заданий</h3></div>');
-  if (current === "promos") return syncPage("Мои промокоды", "Показываем только уже использованные тобой промокоды. Активируй новые через /promo в Discord.",
-    () => p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
+  if (current === "admin") return syncPage("Администрация", "Создание промокодов сообщества.",
+    () => p.canManagePromos ? promoForm("create") : "<p>Нет доступа.</p>");
+  if (current === "promos") return syncPage("Промокоды", "Введи код сообщества, чтобы получить монеты.",
+    () => promoForm("redeem") + (p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
       '<div class="feature"><strong>' + safe(x.code) + '</strong><small>Промокод активирован</small></div>').join("") +
-      '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>');
+      '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>'));
   if (current === "history") return syncPage("История монет", "Твои последние операции. Источник — база Discord-бота.",
     () => p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
       '<div class="feature"><strong>' + (t.amount >= 0 ? '+' : '') + num(t.amount) +
@@ -237,7 +245,7 @@ function extendedContent() {
 }
 
 function content() {
-  if (["inventory", "cosmetics", "shop", "quests", "promos", "history"].includes(current)) return extendedContent();
+  if (["inventory", "cosmetics", "shop", "quests", "promos", "admin", "history"].includes(current)) return extendedContent();
   if (current === "profile") return profileContent();
   if (current === "achievements") {
     const heading = '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section>';
@@ -267,13 +275,17 @@ function navigation() {
   ).join("");
 }
 
-root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' +
-  svg("bird", 25) + '</div><div><strong>Дух Свободы</strong><small>HeradeLegend</small></div></div>' +
+const avatarMark = '<span class="brand-mark bot-avatar"><span aria-hidden="true">ДС</span><img src="/bot-avatar.webp" alt="" width="44" height="44"></span>';
+root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand">' + avatarMark + '<div><strong>Дух Свободы</strong><small>HeradeLegend</small></div></div>' +
   '<nav class="section-nav" aria-label="Разделы">' + navigation() + '</nav></aside>' +
-  '<div class="workspace"><header class="topbar"><strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
+  '<div class="workspace"><header class="topbar">' + avatarMark + '<strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
   '<main id="content" tabindex="-1"></main><footer>Дух Свободы © 2026</footer></div>' +
   '<nav class="bottom-nav section-nav" aria-label="Мобильная навигация">' + navigation() + '</nav></div>';
 
+for (const img of root.querySelectorAll(".bot-avatar img")) {
+  img.addEventListener("error", () => { img.hidden = true; });
+  if (img.complete && !img.naturalWidth) img.hidden = true;
+}
 const panel = root.querySelector("#content");
 const menus = [...root.querySelectorAll(".section-nav")];
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -324,10 +336,20 @@ root.addEventListener("click", event => {
 });
 
 updateNavigation();
+let promoBinding;
 function render() {
+  promoBinding?.abort();
+  if (current === "admin" && !session?.profile?.canManagePromos) current = "promos";
+  for (const link of root.querySelectorAll('[data-go="admin"]')) link.hidden = !session?.profile?.canManagePromos;
+  updateNavigation();
   root.querySelector("#status-label").textContent = syncStateLabel();
   panel.innerHTML = (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') +
     (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content();
+  const form = panel.querySelector("[data-promo]");
+  if (form) {
+    promoBinding = new AbortController();
+    bindPromo(form,promoBinding.signal,loadSession);
+  }
   const attachEquipHandlers = (scope = root) => {
     for (const button of scope.querySelectorAll("[data-equip-id]")) {
       button.disabled = equipPending;

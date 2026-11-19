@@ -3,6 +3,7 @@ import { createPurchaseAction, purchaseActionStatus } from "../lib/purchase-stor
 import { ACTION_ID, EQUIP_ID } from "../lib/action-store.js";
 
 export default async function handler(req,res) {
+  if (req.query?.operation === "promo" || req.url?.split("?")[0] === "/api/promos") return (await import("../lib/promo-api.js")).default(req,res);
   if (!["GET","POST"].includes(req.method)) return json(res,405,{error:"Method not allowed"});
   const session = req.headers.authorization ? activitySessionFromRequest(req) : sessionFromRequest(req);
   if (!session) return json(res,401,{error:"Login required"});

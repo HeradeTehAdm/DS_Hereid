@@ -35,7 +35,7 @@ function retryDelayMs(failures) {
 }
 
 
-function startSpiritOutboundSync({ db, config, logger }) {
+function startSpiritOutboundSync({ db, config, logger, discord }) {
   const secret = process.env.SPIRIT_SYNC_SECRET || "";
   if (!secret) {
     logger.info("Spirit outbound sync disabled (SPIRIT_SYNC_SECRET not set).");
@@ -61,6 +61,7 @@ function startSpiritOutboundSync({ db, config, logger }) {
   let lastNetworkDiagnosticAt = 0;
   const readProfile = createProfileReader({ db, guildId: config.guildId });
   let active = false;
+  let recentWorkUntil = 0;
   let stopped = false;
   let failures = 0;
   let nextAttemptAt = 0;
@@ -82,6 +83,7 @@ function startSpiritOutboundSync({ db, config, logger }) {
       }
       const jobs = jobsResponse.data;
       if (!Array.isArray(jobs?.userIds)) throw new Error("Unexpected sync jobs response.");
+      if ([jobs.userIds, jobs.promos, jobs.actions, jobs.purchases].some(list => list?.length)) recentWorkUntil = Date.now() + 30000;
       const recovered = health !== "healthy";
       health = "healthy";
       failures = 0;
@@ -97,6 +99,11 @@ function startSpiritOutboundSync({ db, config, logger }) {
         if (typeof userId !== "string" || !USER_ID.test(userId)) continue;
         try {
           const profile = readProfile(userId);
+          if (discord?.isReady()) {
+            const { promoMember, canManage } = require("./web-promos");
+            const member = await promoMember(discord, config.guildId, userId);
+            profile.canManagePromos = canManage(member);
+          }
           const result = await client.requestJson(new URL("/api/sync/result", origin), {
             method: "POST", headers, body: { userId, profile },
           });
@@ -111,6 +118,21 @@ function startSpiritOutboundSync({ db, config, logger }) {
       // Repeated action delivery is safe: equipping the same item is idempotent.
       const actions = jobs.actions;
       if (actions !== undefined && !Array.isArray(actions)) throw new Error("Unexpected sync actions response.");
+      for (const job of (jobs.promos || []).slice(0, 10)) {
+        if (stopped || !discord?.isReady()) break;
+        if (!USER_ID.test(job.userId) || !/^[a-f0-9-]{36}$/i.test(job.id)) continue;
+        try {
+          const { promoMember, settle } = require("./web-promos");
+          const member = await promoMember(discord, config.guildId, job.userId);
+          const result = settle.immediate(config.guildId, job, member);
+          const ack = await client.requestJson(new URL("/api/sync/jobs", origin), {
+            method: "POST", headers, body: {id:job.id, userId:job.userId, result}
+          });
+          if (!ack.ok) logger.warn(`Подтверждение промокода: HTTP ${ack.status}`);
+        } catch (error) {
+          logger.warn(`Синхронизация промокода: ${networkErrorText(error)}`);
+        }
+      }
       let equippedCount = 0;
       for (const action of (actions || []).slice(0, 10)) {
         if (stopped) break;
@@ -187,14 +209,20 @@ function startSpiritOutboundSync({ db, config, logger }) {
     }
   }
 
-  const timer = setInterval(() => { void poll(); }, INTERVAL_MS);
-  timer.unref?.();
-  void poll();
+  let timer;
+  async function tick() {
+    await poll();
+    if (stopped) return;
+    const interval = Date.now() < recentWorkUntil ? 3000 : 15000;
+    timer = setTimeout(tick, Math.max(interval, nextAttemptAt - Date.now()));
+    timer.unref?.();
+  }
+  void tick();
   logger.info("Spirit outbound sync enabled (outgoing HTTPS; no inbound port).");
   return {
     close: async () => {
       stopped = true;
-      clearInterval(timer);
+      clearTimeout(timer);
       client.close();
     },
   };

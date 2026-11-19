@@ -121,5 +121,23 @@ function adminInteraction(customId, extra = {}) {
   denied.memberPermissions = { has: () => false }; denied.guild.ownerId = "999"; denied.client.config.ownerIds = [];
   await admin.handle(denied);
   assert.match(denied.out.replies[0].content, /Нет доступа/);
-  console.log("[ OK ] promo codes: redeem rules, limits, anti-bruteforce, admin panel");
+  const { settle } = require("../src/web-promos");
+  const { randomUUID } = require("node:crypto");
+  const member = (id, owner) => ({user:{id}, guild:{id:guild, ownerId:owner},
+    client:{config:{ownerIds:[]}}, permissions:{has:()=>false}, roles:{cache:new Map()}});
+  const job = (kind,userId,payload) => ({id:randomUUID(),kind,userId,payload,deadline:Date.now()+60000});
+  const create = job("create",adminId,{code:"ПРИЗ",coins:350,maxUses:2});
+  const regular = member(u2,adminId);
+  assert.equal(settle.immediate(guild,{...create,id:randomUUID(),userId:u2},regular).reason,"forbidden");
+  assert.ok(settle.immediate(guild,create,member(adminId,adminId)).ok);
+  assert.ok(settle.immediate(guild,create,member(adminId,adminId)).ok);
+  const claim = job("redeem",u2,{code:"ПРИЗ"});
+  const award = settle.immediate(guild,claim,regular);
+  assert.equal(award.coins,350);
+  assert.deepEqual(settle.immediate(guild,claim,regular),award);
+  assert.equal(settle.immediate(guild,{...claim,id:randomUUID()},regular).reason,"already_used");
+  assert.equal(promo.getPromo(guild,"ПРИЗ").uses,1);
+  assert.equal(settle.immediate(guild,{...claim,id:randomUUID(),deadline:0},regular).reason,"timeout");
+  console.log("Проверены права, лимиты, однократное начисление и повторная доставка.");
+  require("../src/database").close();
 })().catch((e) => { console.error(e); process.exit(1); }).finally(() => fs.rmSync(tempDir, { recursive: true, force: true }));

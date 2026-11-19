@@ -164,6 +164,7 @@ function parseOptionalInt(raw) {
 }
 
 module.exports = {
+  allowed, audit,
   data: new SlashCommandBuilder().setName("admin").setDescription("Открыть административную панель HeradeLegend.").setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.inGuild()) return interaction.reply({ content: "Панель доступна только на сервере.", flags: MessageFlags.Ephemeral });

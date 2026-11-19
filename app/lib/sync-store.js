@@ -25,7 +25,7 @@ export async function getCachedOrRequest(userId) {
     VALUES (${userId}, 'pending', now(), now())
     ON CONFLICT (user_id) DO UPDATE
       SET status = 'pending', requested_at = now(), updated_at = now()
-    WHERE spirit_requests.updated_at < now() - interval '12 seconds'
+    WHERE spirit_requests.status <> 'pending' OR spirit_requests.requested_at < now() - interval '5 minutes'
   `;
   return { profile: null, sync: "pending" };
 }
@@ -36,7 +36,7 @@ export async function pendingProfileJobs() {
   const rows = await sql`
     SELECT user_id FROM spirit_requests
     WHERE status = 'pending' AND requested_at > now() - interval '10 minutes'
-    ORDER BY requested_at ASC LIMIT 15
+    ORDER BY requested_at ASC LIMIT 10
   `;
   return rows.map((row) => row.user_id);
 }
@@ -47,19 +47,15 @@ export async function saveRequestedProfile(userId, payload) {
   const serialized = JSON.stringify(payload);
   if (Buffer.byteLength(serialized, "utf8") > 512_000) return false;
   const rows = await sql`
-    INSERT INTO spirit_profiles (user_id, payload, synced_at)
-    SELECT user_id, ${serialized}::jsonb, now()
-    FROM spirit_requests
-    WHERE user_id = ${userId} AND status = 'pending'
-      AND requested_at > now() - interval '10 minutes'
+    WITH requested AS (
+      UPDATE spirit_requests SET status='complete', updated_at=now()
+      WHERE user_id=${userId} AND status='pending' AND requested_at > now() - interval '10 minutes'
+      RETURNING user_id
+    ) INSERT INTO spirit_profiles (user_id,payload,synced_at)
+    SELECT user_id, ${serialized}::jsonb, now() FROM requested
     ON CONFLICT (user_id) DO UPDATE
       SET payload = EXCLUDED.payload, synced_at = EXCLUDED.synced_at
     RETURNING user_id
   `;
-  if (!rows.length) return false;
-  await sql`
-    UPDATE spirit_requests SET status='complete', updated_at=now()
-    WHERE user_id = ${userId}
-  `;
-  return true;
+  return rows.length > 0;
 }
