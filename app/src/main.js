@@ -2,6 +2,8 @@ import "./style.css";
 import "./cosmetic-profile.css";
 import "./shop-view.css";
 import "./community.css";
+import "./appearance.css";
+import { appearancePage, setAppearance } from "./appearance.js";
 import { bindPromo, promoForm } from "./web-promos.js";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
@@ -35,6 +37,7 @@ const sections = [
   { id: "quests", label: "Задания", icon: "quests" },
   { id: "admin", label: "Администрация", icon: "quests" },
   { id: "promos", label: "Промокоды", icon: "promos" },
+  { id: "appearance", label: "Оформление", icon: "cosmetics" },
   { id: "history", label: "История", icon: "history" },
 ];
 
@@ -245,6 +248,7 @@ function extendedContent() {
 }
 
 function content() {
+  if (current === "appearance") return appearancePage();
   if (["inventory", "cosmetics", "shop", "quests", "promos", "admin", "history"].includes(current)) return extendedContent();
   if (current === "profile") return profileContent();
   if (current === "achievements") {
@@ -286,6 +290,9 @@ for (const img of root.querySelectorAll(".bot-avatar img")) {
   img.addEventListener("error", () => { img.hidden = true; });
   if (img.complete && !img.naturalWidth) img.hidden = true;
 }
+root.addEventListener("change", event => {
+  if (event.target.matches("input[data-appearance]")) setAppearance(event.target.name,event.target.value);
+});
 const panel = root.querySelector("#content");
 const menus = [...root.querySelectorAll(".section-nav")];
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");

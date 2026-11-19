@@ -1,0 +1,60 @@
+:root[data-scheme] {
+  --mint: var(--accent-ink);
+  --muted: #b5c5d6;
+  --sidebar: #0e1724;
+  --soft: #1c2b3d;
+  --selected: color-mix(in srgb,var(--accent-ink) 16%,var(--surface));
+  color-scheme: dark;
+  accent-color: var(--accent-ink);
+}
+:root[data-scheme="light"] {
+  color-scheme: light;
+  --night: #f4f7fa;
+  --surface: #fff;
+  --sidebar: #fafdff;
+  --line: #b4c2cc;
+  --text: #182637;
+  --muted: #47586a;
+  --soft: #eaf0f5;
+}
+.shell {background:linear-gradient(155deg,color-mix(in srgb,var(--accent-ink) 5%,var(--night)),var(--night) 58%);color:var(--text)}
+.sidebar,.bottom-nav.section-nav {background:var(--sidebar);border-color:var(--line)}
+.section-nav .nav-link,.top-status,.brand small,footer {color:var(--muted)}
+.section-nav .nav-link:hover,.section-nav .nav-link:active {background:color-mix(in srgb,var(--accent-ink) 8%,transparent);color:var(--text)}
+.section-nav .nav-link[aria-current="page"] {color:var(--accent-ink)}
+.nav-indicator {background:linear-gradient(110deg,var(--selected),color-mix(in srgb,var(--accent-end) 13%,var(--surface)));border-color:var(--accent-ink)}
+.hero {color:#fff}
+.hero h1 em {color:var(--accent-pale)}
+.primary,.brand-mark,.sf-action-buy,.cos-equip-button,.sf-action-equip {background:var(--accent-fill);color:#10202c;border-color:transparent}
+.feature,.empty,.empty h3,.sf-store,.sf-product h3,.section-name,.profile-card,.stat {color:var(--text)}
+.feature-icon,.feature-icon.purple,.feature-icon.blue,.empty-symbol,.tag,.logout {background:var(--selected);color:var(--accent-ink)}
+.feature-next,.eyebrow,.cos-eyebrow,.sf-store-eyebrow,.cos-muted,.cos-group-icon,.cos-stat-icon,.cos-see-all,.cos-xp b,.sf-product-footer strong {color:var(--accent-ink)}
+button.feature:hover,.logout:hover {background:var(--selected);border-color:var(--accent-ink)}
+.heading p,.empty p,.feature small,.profile-card p,.cos-empty,.cos-disclaimer,.cos-gallery-heading p,.cos-summary-row small,.cos-stat small,.cos-userline p,.cos-xp span,.sf-select-wrap,.sf-affordable,.sf-result-count,.sf-product p,.sf-shop-note,.sf-pager,.sf-store-hero>p,.sf-store-summary small {color:var(--muted)}
+.cos-identity,.cos-stat,.cos-stat:nth-child(3n),.cos-summary-row,.cos-item,.cos-title-strip,.cos-xp,.sf-store-summary>div,.sf-select-wrap select,.sf-search,.sf-tabs button,.sf-pager button,.sf-no-results,.stat {background:var(--soft);border-color:var(--line);color:var(--text);box-shadow:none}
+.cos-page:before,.sf-store-hero:after {display:none}
+.cos-banner-caption,.cos-avatar {color:#fff}
+.cos-avatar {border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--surface)}
+.cos-progress {background:var(--line)}
+.cos-progress>span {background:linear-gradient(90deg,var(--accent-ink),var(--accent-end));box-shadow:none}
+.cos-item.cos-picked,.sf-product:hover {border-color:var(--accent-ink);box-shadow:0 0 0 1px var(--accent-ink)}
+.sf-store-hero {background:linear-gradient(115deg,var(--selected),var(--surface));border-color:var(--line)}
+.sf-store-hero h1 em,.cos-gallery-heading h1 em {color:var(--accent-ink);text-shadow:none}
+.sf-search input,.sf-store-summary strong {color:var(--text)}
+.sf-search input::placeholder {color:var(--muted)}
+.sf-affordable input {accent-color:var(--accent-ink)}
+.sf-tabs button.selected,.sf-tabs button:hover,.sf-pager button:not(:disabled):hover,.sf-own-tag,.cos-count,.cos-toast {background:var(--selected);border-color:var(--accent-ink);color:var(--accent-ink);box-shadow:none}
+.sf-tabs button span,.sf-tabs button small,.cos-title-strip>span {color:var(--accent-ink)}
+[data-scheme="light"] :is(.cos-rarity,.sf-rarity) {background:#34283e;color:#fff}
+[data-scheme="light"] .sf-action-static {background:var(--soft);color:var(--muted)}
+.theme-group {margin:0 0 26px;padding:18px;display:flex;flex-wrap:wrap;gap:12px;border:1px solid var(--line);border-radius:18px;background:var(--surface);min-width:0}
+.theme-group legend {padding:0 8px;font-weight:800;font-size:18px}
+.theme-option {display:inline-flex;align-items:center;gap:9px;min-height:46px;padding:10px 14px;background:var(--soft);border:1px solid var(--line);border-radius:12px;color:var(--text);cursor:pointer}
+.theme-option:has(:checked) {background:var(--selected);border-color:var(--accent-ink);color:var(--accent-ink)}
+.theme-option:focus-within {outline:2px solid var(--accent-ink);outline-offset:3px}
+.theme-option input {margin:0;width:16px;height:16px}
+.theme-swatch {width:25px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1px #0004}
+@media(max-width:520px) {
+  .theme-group {display:grid;grid-template-columns:1fr;gap:8px}
+}
+
