@@ -187,12 +187,12 @@ if (!session?.profile) return '<div class="profile-card"><div class="profile-ava
   return renderCosmeticProfile(session);
 }
 
-function syncPage(title, description, body) {
+function syncPage(title, description, renderBody) {
   const heading = '<section class="heading"><span class="eyebrow">ДАННЫЕ ИЗ DISCORD</span><h1>' + safe(title) + '</h1><p>' + safe(description) + '</p></section>';
   if (isDiscordActivity && activityState !== "ready") return heading + '<div class="empty"><h3>Подключаем Discord</h3><p>' + safe(activityError || "Проверяем учётную запись…") + '</p></div>';
   if (!session?.identity) return heading + '<div class="empty"><h3>Войди через Discord</h3><p>Нужна авторизация для просмотра своих данных.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord</a></div>';
   if (!session.profile) return heading + '<div class="empty"><h3>Ожидается соединение с ботом</h3><p>Профильное API временно недоступно или ещё не подключено.</p></div>';
-  return heading + body;
+  return heading + renderBody();
 }
 
 function itemCards(items, empty = "Здесь пока ничего нет.") {
@@ -207,21 +207,21 @@ function itemCards(items, empty = "Здесь пока ничего нет.") {
 
 function extendedContent() {
   const p = session?.profile;
-  if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", renderCosmeticsGallery(session));
-  if (current === "shop") return syncPage("Магазин", "Твой стиль — в одном месте.", renderShopPage(p, shopFilters));
+  if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", () => renderCosmeticsGallery(session));
+  if (current === "shop") return syncPage("Магазин", "Твой стиль — в одном месте.", () => renderShopPage(p, shopFilters));
   if (current === "quests") return syncPage("Ежедневные задания", "Текущий прогресс заданий из Discord.",
-    p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
+    () => p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
       '<div class="feature"><strong>' + safe(q.name) + '</strong><small>' + safe(q.description) +
       '</small><span class="tag">' + num(q.progress) + '/' + num(q.target) +
       ' · ' + (q.completed ? 'Выполнено' : 'В процессе') +
       ' · +' + num(q.reward) + ' 🪙</span></div>').join("") + '</div>' :
       '<div class="empty"><h3>Пока нет заданий</h3></div>');
   if (current === "promos") return syncPage("Мои промокоды", "Показываем только уже использованные тобой промокоды. Активируй новые через /promo в Discord.",
-    p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
+    () => p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
       '<div class="feature"><strong>' + safe(x.code) + '</strong><small>Промокод активирован</small></div>').join("") +
       '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>');
   if (current === "history") return syncPage("История монет", "Твои последние операции. Источник — база Discord-бота.",
-    p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
+    () => p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
       '<div class="feature"><strong>' + (t.amount >= 0 ? '+' : '') + num(t.amount) +
       ' 🪙</strong><small>' + safe(t.details || t.kind) + '</small><span class="tag">' +
       safe(t.kind) + '</span></div>').join("") + '</div>' :
