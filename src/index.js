@@ -82,7 +82,7 @@ loadCommands();
 const adminPanel = client.commands.get("admin");
 const minecraftApi = startMinecraftApi({ db, config, logger });
 const spiritProfileApi = startSpiritProfileApi({ db, config, logger });
-const spiritOutboundSync = startSpiritOutboundSync({ db, config, logger });
+const spiritOutboundSync = startSpiritOutboundSync({ db, config, logger, discord: client });
 minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to start; Minecraft login verification will remain unavailable.", error));
 
 client.once(Events.ClientReady, async (readyClient) => {
