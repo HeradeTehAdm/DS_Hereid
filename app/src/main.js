@@ -1,12 +1,19 @@
 import "./style.css";
 import "./cosmetic-profile.css";
 import "./shop-view.css";
+import "./community.css";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
 
 const svg = (name, size = 22) => {
   const shapes = {
+    inventory: '<path d="M3 8l9-5 9 5-9 5zM3 8v9l9 5 9-5V8M12 13v9"/>',
+    cosmetics: '<path d="M4 16l9-9 4 4-9 9H4zM15 5l2-2 4 4-2 2M4 4v4M2 6h4"/>',
+    shop: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10q2 4 5 0 2 4 4 0 2 4 4 0 3 4 5 0M9 20v-6h6v6"/>',
+    quests: '<path d="M9 5H5v16h14V5h-4M9 3h6v4H9zM8 13l3 3 5-6"/>',
+    promos: '<path d="M3 7h18v4a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4zM15 8v2m0 3v2"/>',
+    history: '<path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v6l4 2"/>',
     bird: '<path d="M16 7h.01M7 17c3-1 5-4 5-8 2 3 5 3 8 2-2 3-5 5-9 6l-4 3 1-4-4-3c3 0 5-2 6-5"/>',
     home: '<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -21,12 +28,12 @@ const sections = [
   { id: "home", label: "Главная", icon: "home" },
   { id: "profile", label: "Профиль", icon: "user" },
   { id: "achievements", label: "Награды", icon: "trophy" },
-  { id: "inventory", label: "Коллекция", icon: "spark" },
-  { id: "cosmetics", label: "Косметика", icon: "spark" },
-  { id: "shop", label: "Магазин", icon: "spark" },
-  { id: "quests", label: "Задания", icon: "trophy" },
-  { id: "promos", label: "Промокоды", icon: "spark" },
-  { id: "history", label: "История", icon: "spark" },
+  { id: "inventory", label: "Коллекция", icon: "inventory" },
+  { id: "cosmetics", label: "Косметика", icon: "cosmetics" },
+  { id: "shop", label: "Магазин", icon: "shop" },
+  { id: "quests", label: "Задания", icon: "quests" },
+  { id: "promos", label: "Промокоды", icon: "promos" },
+  { id: "history", label: "История", icon: "history" },
 ];
 
 const root = document.getElementById("app");
@@ -245,11 +252,82 @@ function content() {
       safe(a.rarity) + '</span></div>'
     ).join("") + '</div>';
   }
-  return '<section class="hero"><div class="halo"></div><span class="eyebrow">WELCOME TO YOUR SPACE</span><div class="hero-icon">' + svg("bird", 54) + '</div><h1>ДУХ<br><em>СВОБОДЫ</em></h1><p>Одно сообщество. Тысячи возможностей.<br>Твоя история начинается здесь.</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 20) + '</button><span class="hero-foot">✦ MADE FOR THE COMMUNITY ✦</span></section><div class="section-title"><h2>Исследуй мир</h2><span>01 / 03</span></div><div class="feature-grid"><button class="feature" data-go="profile"><span class="feature-icon purple">' + svg("user", 29) + '</span><strong>Мой профиль</strong><small>Твой уровень, опыт и стиль</small><span class="feature-next">' + svg("arrow", 19) + '</span></button><button class="feature" data-go="achievements"><span class="feature-icon blue">' + svg("trophy", 29) + '</span><strong>Достижения</strong><small>Коллекция твоих побед</small><span class="feature-next">' + svg("arrow", 19) + '</span></button></div>';
+  return '<section class="hero"><div class="hero-copy"><h1>Дух <em>Свободы</em></h1><p>Личный кабинет сообщества HeradeLegend</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 18) + '</button></div></section>' +
+    '<section class="home-links"><h2>Разделы сообщества</h2><div class="feature-grid">' +
+    sections.filter(section => ["achievements","inventory","shop"].includes(section.id)).map(section =>
+      '<button type="button" class="feature" data-go="' + section.id + '"><span class="feature-icon">' +
+      svg(section.icon, 25) + '</span><strong>' + section.label + '</strong><span class="feature-next">' + svg("arrow", 18) + '</span></button>'
+    ).join("") + '</div></section>';
 }
 
+function navigation() {
+  return '<span class="nav-indicator" aria-hidden="true"></span>' + sections.map(section =>
+    '<button class="nav-link" type="button" data-go="' + section.id + '">' +
+    svg(section.icon, 20) + '<span>' + section.label + '</span></button>'
+  ).join("");
+}
+
+root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' +
+  svg("bird", 25) + '</div><div><strong>Дух Свободы</strong><small>HeradeLegend</small></div></div>' +
+  '<nav class="section-nav" aria-label="Разделы">' + navigation() + '</nav></aside>' +
+  '<div class="workspace"><header class="topbar"><strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
+  '<main id="content" tabindex="-1"></main><footer>Дух Свободы © 2026</footer></div>' +
+  '<nav class="bottom-nav section-nav" aria-label="Мобильная навигация">' + navigation() + '</nav></div>';
+
+const panel = root.querySelector("#content");
+const menus = [...root.querySelectorAll(".section-nav")];
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let entrance;
+
+function positionIndicator(menu) {
+  const active = menu.querySelector('[aria-current="page"]');
+  if (!active || !menu.clientWidth) return;
+  const indicator = menu.querySelector(".nav-indicator");
+  indicator.style.width = active.offsetWidth + "px";
+  indicator.style.height = active.offsetHeight + "px";
+  indicator.style.transform = "translate(" + active.offsetLeft + "px," + active.offsetTop + "px)";
+}
+
+function updateNavigation() {
+  for (const menu of menus) {
+    for (const button of menu.querySelectorAll("[data-go]")) {
+      if (button.dataset.go === current) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    }
+    positionIndicator(menu);
+  }
+  root.querySelector(".section-name").textContent = sections.find(section => section.id === current).label;
+}
+
+const menuObserver = new ResizeObserver(entries => {
+  for (const entry of entries) positionIndicator(entry.target);
+});
+for (const menu of menus) menuObserver.observe(menu);
+
+root.addEventListener("click", event => {
+  const button = event.target.closest("button[data-go]");
+  if (!button || current === button.dataset.go) return;
+  const fromContent = panel.contains(button);
+  current = button.dataset.go;
+  updateNavigation();
+  render();
+  if (fromContent) panel.focus({ preventScroll: true });
+  window.scrollTo({top: 0, behavior: "instant"});
+  const mobileMenu = root.querySelector(".bottom-nav");
+  if (mobileMenu.clientWidth) mobileMenu.querySelector('[aria-current="page"]').scrollIntoView({
+    block: "nearest", inline: "nearest", behavior: reducedMotion.matches ? "instant" : "smooth"
+  });
+  entrance?.cancel();
+  if (!reducedMotion.matches) entrance = panel.animate([
+    {opacity: .75, transform: "translateY(5px)"}, {opacity: 1, transform: "none"}
+  ], {duration: 190, easing: "ease-out"});
+});
+
+updateNavigation();
 function render() {
-  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  root.querySelector("#status-label").textContent = syncStateLabel();
+  panel.innerHTML = (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') +
+    (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content();
   const attachEquipHandlers = (scope = root) => {
     for (const button of scope.querySelectorAll("[data-equip-id]")) {
       button.disabled = equipPending;
@@ -327,11 +405,7 @@ function render() {
       logout.textContent = "Ошибка выхода. Повтори попытку.";
     }
   });
-  for (const button of root.querySelectorAll("[data-go]")) button.addEventListener("click", () => {
-    current = button.dataset.go;
-    render();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+
 }
 async function bootstrap() {
   if (isDiscordActivity) {

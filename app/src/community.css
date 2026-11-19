@@ -1,0 +1,60 @@
+:root {
+  --night: #0b121e;
+  --surface: #141e2e;
+  --line: #344156;
+  --mint: #95efce;
+  --text: #edf4fa;
+  color: var(--text);
+  background: var(--night);
+}
+.shell {background: radial-gradient(ellipse at 70% -10%, #21354a, transparent 52%), var(--night)}
+.sidebar {width:242px; flex-shrink:0; gap:36px; padding:30px 16px; background:#0e1724; border-color:#253246; overflow-y:auto}
+.brand {padding:0 7px}
+.brand strong {font-size:17px; letter-spacing:-.035em}
+.brand small {color:#a7b9c8; letter-spacing:.075em}
+.brand-mark,.primary {color:#09271e; background:var(--mint); box-shadow:none}
+.section-nav {position:relative; isolation:isolate; gap:5px}
+.section-nav .nav-link {position:relative; z-index:1; border:0; background:transparent; box-shadow:none; color:#b7c6d7; transition:color 150ms,background 150ms}
+.section-nav .nav-link:hover {background:#aacee512; color:white}
+.section-nav .nav-link:active {background:#aacee524}
+.section-nav .nav-link[aria-current="page"] {color:#c8ffe9}
+.nav-indicator {position:absolute; pointer-events:none; left:0; top:0; background:#1d3839; border:1px solid #39615d; border-radius:13px; transition:transform 240ms cubic-bezier(.2,.8,.2,1),width 180ms,height 180ms}
+.topbar {background:transparent; border-color:#35435880; gap:18px}
+.section-name {font-size:16px; letter-spacing:-.025em}
+.top-status {color:#c0cedb; letter-spacing:.09em}
+main {max-width:1380px; padding-top:36px}
+.hero {min-height:clamp(320px,39vw,485px); padding:clamp(30px,5vw,74px); align-items:flex-start; text-align:left; border:1px solid #455667; border-radius:24px; background:linear-gradient(90deg,#091621ef 5%,#12212da8 53%,#17193125),url("/banners/banner_galaxy.webp") center/cover; box-shadow:none}
+.hero:after {display:none}
+.hero-copy {position:relative; max-width:600px}
+.hero h1 {margin:0; font-size:clamp(48px,7vw,92px); letter-spacing:-.07em; line-height:.99}
+.hero h1 em {display:block; background:none; color:var(--mint)}
+.hero p {color:#e1e9f3; font-size:16px; margin-bottom:0}
+.primary {min-height:44px; transition:filter .15s}
+.primary:hover {transform:none; filter:brightness(1.1)}
+.home-links h2 {margin:32px 0 16px; font-size:22px; letter-spacing:-.035em}
+.home-links .feature-grid {grid-template-columns:repeat(3,minmax(0,1fr))}
+.feature,.empty,.profile-card,.cos-summary,.cos-group,.sf-product,.sf-store-toolbar {background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:none}
+button.feature:hover {background:#1c3040; border-color:#73988e}
+.feature-icon,.feature-icon.purple,.feature-icon.blue,.empty-symbol {background:#213c3e; color:var(--mint)}
+.feature-next,.cos-eyebrow,.eyebrow {color:var(--mint)}
+.heading h1,.cos-gallery-heading h1,.sf-store-hero h1 {letter-spacing:-.055em}
+.heading p,.empty p,.feature small {color:#bccbda}
+.sf-store-hero {background:linear-gradient(120deg,#203b3f,#152335 70%); border-color:#40585f; box-shadow:none}
+.sf-store-hero h1 em,.cos-gallery-heading h1 em {color:var(--mint); background:none}
+:where(a,button,input,select):focus-visible {outline:2px solid var(--mint); outline-offset:3px}
+#content:focus-visible {outline:2px solid var(--mint); outline-offset:-2px}
+@media(max-width:800px) {
+  .bottom-nav.section-nav {position:fixed; background:#0e1826f5; gap:2px; height:calc(68px + env(safe-area-inset-bottom)); border-color:var(--line)}
+  .bottom-nav .nav-link {padding:8px 2px; border-radius:10px; gap:3px}
+  .bottom-nav .nav-indicator {border-radius:10px}
+  .section-nav button:focus-visible {outline-offset:-3px}
+  .home-links .feature-grid {grid-template-columns:1fr}
+  .home-links .feature {min-height:66px; flex-direction:row; align-items:center; gap:14px; padding:12px 16px}
+  .home-links .feature-icon {margin:0; width:38px; height:38px}
+  .hero {min-height:325px; padding:28px; border-radius:18px}
+  .hero p {font-size:14px}
+  .cos-page:before {inset-inline:0}
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:0s!important; scroll-behavior:auto!important}
+}
