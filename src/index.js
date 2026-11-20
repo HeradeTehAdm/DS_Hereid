@@ -91,7 +91,9 @@ client.once(Events.ClientReady, async (readyClient) => {
   try {
     const channel=await readyClient.channels.fetch("1572474768706375770");
     const read=()=>channel.messages.fetch({message:"1573220106354294785",force:true});
-    const m=await read();
+    const recent=await channel.messages.fetch({limit:30});
+    logger.info("Карточки запуска: "+recent.filter(m=>m.author.id===readyClient.user.id && m.components.some(row=>row.components.some(b=>b.customId==="spirit:launch"))).map(m=>m.id).join(", "));
+    const m=await read(); logger.info("Исходная карточка найдена");
     if(channel.guildId!=="1563229854030372864" || m.author.id!==readyClient.user.id || m.embeds.length!==1 || !m.components.some(row=>row.components.some(b=>b.customId==="spirit:launch"))) throw Error("Неверная карточка");
     const template=spiritApp.inviteEmbed(channel.guild.name).data;
     const embed=m.embeds[0].toJSON(), controls=JSON.stringify(m.components.map(row=>row.toJSON()));
