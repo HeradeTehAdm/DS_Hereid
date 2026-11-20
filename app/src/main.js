@@ -4,6 +4,7 @@ import "./shop-view.css";
 import "./community.css";
 import "./appearance.css";
 import "./memory-game.css";
+import "./home-scenes.css";
 import { memoryPage, bindMemory } from "./memory-game.js";
 import { appearancePage, setAppearance } from "./appearance.js";
 import { bindPromo, promoForm } from "./web-promos.js";
@@ -270,6 +271,9 @@ function content() {
     ).join("") + '</div>';
   }
   return '<section class="hero"><div class="hero-copy"><h1>Дух <em>Свободы</em></h1><p>Личный кабинет сообщества HeradeLegend</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 18) + '</button></div></section>' +
+    '<button class="home-profile" data-go="profile"><span class="home-profile-icon">' + svg("user",26) + '</span><span><strong>' +
+    safe(session?.identity?.displayName || "Мой профиль") + '</strong><small>' +
+    (session?.identity ? "Участник сообщества" : "Войти через Discord") + '</small></span>' + svg("arrow",18) + '</button>' +
     '<section class="home-links"><h2>Разделы сообщества</h2><div class="feature-grid">' +
     sections.filter(section => ["achievements","inventory","shop","games"].includes(section.id)).map(section =>
       '<button type="button" class="feature" data-go="' + section.id + '"><span class="feature-icon">' +
