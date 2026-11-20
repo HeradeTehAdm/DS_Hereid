@@ -1,0 +1,36 @@
+.home-profile {display:none}
+[data-accent=aurora] {--mountains:url("/scenes/aurora-mountains.webp");--market:url("/scenes/aurora-shop.webp");--games:url("/scenes/aurora-games.webp")}
+[data-accent=sunset] {--mountains:url("/scenes/sunset-mountains.webp");--market:url("/scenes/sunset-shop.webp");--games:url("/scenes/sunset-games.webp")}
+:root:is([data-accent=aurora],[data-accent=sunset]) .hero {
+  min-height:clamp(330px,34vw,480px);background:linear-gradient(90deg,#101626e8 0%,#101626a8 29%,transparent 75%),var(--mountains) center 53% / cover;
+  border-color:var(--line)
+}
+:root:is([data-accent=aurora],[data-accent=sunset]) .hero .primary {display:none}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-profile {
+  display:flex;width:100%;align-items:center;gap:16px;margin:16px 0;padding:16px 20px;text-align:left;
+  background:linear-gradient(110deg,var(--selected),var(--surface));color:var(--text);border:1px solid var(--line);border-radius:16px
+}
+.home-profile strong,.home-profile small {display:block}
+.home-profile small {margin-top:3px;color:var(--muted)}
+.home-profile>svg {margin-left:auto}
+.home-profile-icon {width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:var(--selected);color:var(--accent-ink)}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature:is([data-go=shop],[data-go=games]) {
+  --scene:var(--market);order:-1;overflow:hidden;align-items:flex-start;justify-content:flex-start;min-height:190px;
+  background:linear-gradient(180deg,#0c1328e8,#0c132869 40%,transparent 75%),var(--scene) center bottom / cover;color:white
+}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature[data-go=games] {--scene:var(--games)}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature:is([data-go=shop],[data-go=games]) .feature-icon {background:transparent;color:white}
+:root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature:is([data-go=shop],[data-go=games]) .feature-next {display:none}
+@media(max-width:800px) {
+  :root:is([data-accent=aurora],[data-accent=sunset]) .hero {
+    min-height:260px;align-items:flex-start;justify-content:flex-start;padding:18px;
+    background:linear-gradient(180deg,#101626de,transparent 55%),var(--mountains) center/cover
+  }
+  :root:is([data-accent=aurora],[data-accent=sunset]) .hero h1 {font-size:clamp(30px,7vw,54px)}
+  :root:is([data-accent=aurora],[data-accent=sunset]) .hero h1 em {display:inline;color:white}
+  :root:is([data-accent=aurora],[data-accent=sunset]) .hero p {margin-top:5px;color:white}
+  :root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature:is([data-go=shop],[data-go=games]) {min-height:145px;padding:12px;gap:6px}
+  :root:is([data-accent=aurora],[data-accent=sunset]) .home-links .feature:is([data-go=shop],[data-go=games]) .feature-icon {width:22px;height:22px}
+}
+

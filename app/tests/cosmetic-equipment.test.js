@@ -14,7 +14,7 @@ test("all original bot banner images are present and embedded as JPEG", () => {
     const svg = readFileSync(join(folder, name), "utf8");
     assert.match(svg, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
     assert.match(svg, /href="data:image\/jpeg;base64,\/9j\//);
-    assert.ok(svg.endsWith("</svg>") || svg.endsWith("</svg>\n"));
+    assert.match(svg, /<\/svg>(?:\r?\n)?$/);
   }
 });
 

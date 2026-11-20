@@ -1,0 +1,89 @@
+/* Эти цвета наследуются всеми разделами. Регистрация позволяет плавно менять и градиентные заливки. */
+@property --night {syntax:"<color>";inherits:true;initial-value:#0b121e}
+@property --surface {syntax:"<color>";inherits:true;initial-value:#141e2e}
+@property --soft {syntax:"<color>";inherits:true;initial-value:#1c2b3d}
+@property --sidebar {syntax:"<color>";inherits:true;initial-value:#0e1724}
+@property --text {syntax:"<color>";inherits:true;initial-value:#edf4fa}
+@property --muted {syntax:"<color>";inherits:true;initial-value:#b5c5d6}
+@property --line {syntax:"<color>";inherits:true;initial-value:#344156}
+@property --accent-ink {syntax:"<color>";inherits:true;initial-value:#95efce}
+@property --accent-pale {syntax:"<color>";inherits:true;initial-value:#95efce}
+@property --accent-pale-end {syntax:"<color>";inherits:true;initial-value:#95efce}
+@property --accent-end {syntax:"<color>";inherits:true;initial-value:#95efce}
+@property --tide {syntax:"<color>";inherits:true;initial-value:#116964}
+@property --glow {syntax:"<color>";inherits:true;initial-value:#37e3bc}
+@property --horizon {syntax:"<color>";inherits:true;initial-value:#514995}
+
+:root[data-accent="aurora"] {
+  --tide:#00786d; --glow:#31e4b8; --horizon:#5543a5;
+  --night:#101429; --sidebar:#101d36; --surface:#122b3d; --soft:#173b4a;
+  --text:#f0fafa; --muted:#b3cecf; --line:#37646e;
+}
+:root[data-accent="sunset"] {
+  --tide:#b54a62; --glow:#ffb16c; --horizon:#782d76;
+  --night:#281728; --sidebar:#361b36; --surface:#49253b; --soft:#583046;
+  --text:#fff5ee; --muted:#ebc7cb; --line:#87566a;
+}
+:root[data-accent="aurora"][data-scheme="light"] {
+  --night:#f0f6f6; --sidebar:#f1f9f8; --surface:#f9fffe; --soft:#dfeeed;
+  --text:#152c3b; --muted:#38585c; --line:#97b7bc;
+}
+:root[data-accent="sunset"][data-scheme="light"] {
+  --night:#fff6ef; --sidebar:#fff1eb; --surface:#fffbf7; --soft:#f8e6e3;
+  --text:#402338; --muted:#6d4550; --line:#caa1aa;
+}
+
+:root:is([data-accent="aurora"],[data-accent="sunset"]) {
+  --panel-wash:linear-gradient(125deg,color-mix(in srgb,var(--tide) 16%,var(--surface)),var(--surface) 70%);
+  --nav-wash:linear-gradient(140deg,color-mix(in srgb,var(--horizon) 13%,var(--sidebar)),var(--sidebar) 65%,color-mix(in srgb,var(--tide) 13%,var(--sidebar)));
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .shell {
+  background:
+    radial-gradient(ellipse at 95% 5%,color-mix(in srgb,var(--horizon) 16%,transparent),transparent 48%),
+    radial-gradient(ellipse at 22% 92%,color-mix(in srgb,var(--tide) 14%,transparent),transparent 54%),var(--night);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) :is(.sidebar,.bottom-nav.section-nav) {background:var(--nav-wash)}
+:is([data-accent="aurora"],[data-accent="sunset"]) .topbar {
+  position:relative;isolation:isolate;overflow:hidden;background:var(--nav-wash);border-color:var(--line);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .topbar::before {
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 29% 160% at 37% -42%,transparent 46%,color-mix(in srgb,var(--glow) 38%,transparent) 54%,transparent 64%),
+    radial-gradient(ellipse 33% 115% at 64% 149%,transparent 49%,color-mix(in srgb,var(--tide) 67%,transparent) 61%,transparent 79%),
+    radial-gradient(ellipse at 72% 18%,color-mix(in srgb,var(--horizon) 32%,transparent),transparent 60%);
+  background-size:145% 100%;
+  mask-image:linear-gradient(90deg,transparent 4%,black 29%,black 76%,transparent 99%);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) :is(.theme-group,.empty,.profile-card,.cos-summary,.cos-group,.cos-identity,.sf-product,.sf-store-toolbar,.promo-form,.game-tools) {
+  background:var(--panel-wash);border-color:var(--line);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .nav-indicator {
+  background:linear-gradient(140deg,color-mix(in srgb,var(--tide) 27%,var(--sidebar)),var(--selected));
+  border-color:color-mix(in srgb,var(--accent-ink) 65%,var(--line));
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .sf-store-hero {
+  background:radial-gradient(ellipse at 84% 104%,color-mix(in srgb,var(--glow) 18%,transparent),transparent 55%),var(--nav-wash);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .cos-banner::after {
+  background:linear-gradient(90deg,color-mix(in srgb,#100b21 85%,var(--horizon)),transparent 85%);
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .memory-card[data-state="closed"] {
+  background:
+    radial-gradient(ellipse at 105% 94%,color-mix(in srgb,var(--glow) 18%,transparent),transparent 57%),
+    linear-gradient(135deg,color-mix(in srgb,var(--horizon) 13%,var(--soft)),var(--soft),var(--selected));
+}
+:is([data-accent="aurora"],[data-accent="sunset"]) .memory-card[data-state="matched"] {
+  background:linear-gradient(130deg,var(--selected),color-mix(in srgb,var(--glow) 17%,var(--surface)));
+}
+@media(prefers-reduced-motion:no-preference) {
+  :root[data-scheme] {
+    transition-property:--night,--surface,--soft,--sidebar,--text,--muted,--line,--accent-ink,--accent-end,--accent-pale,--accent-pale-end,--tide,--glow,--horizon;
+    transition-duration:260ms;transition-timing-function:ease-in-out;
+  }
+  :is([data-accent="aurora"],[data-accent="sunset"]) .topbar::before {animation:header-tide 13s ease-in-out infinite alternate}
+  @keyframes header-tide {from{background-position:8% 0}to{background-position:94% 0}}
+  .nav-indicator {transition:transform 170ms cubic-bezier(.18,.8,.22,1),width 160ms,height 160ms}
+  :is(.memory-card,.home-links button.feature,.sf-action,.primary):active:not(:disabled,[aria-disabled="true"]) {transform:scale(.975)}
+  :is(.home-links button.feature,.memory-card,.sf-action,.primary) {transition:transform 100ms ease-out,border-color 130ms ease-out,filter 120ms}
+}

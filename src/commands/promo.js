@@ -21,7 +21,7 @@ function registerFailure(key, now) {
 const money = (n) => Number(n).toLocaleString("ru-RU");
 
 module.exports = {
-  failures,
+  failures, blockedFor, registerFailure,
   data: new SlashCommandBuilder()
     .setName("promo")
     .setDescription("Активировать промокод и получить монеты.")

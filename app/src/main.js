@@ -1,12 +1,26 @@
 import "./style.css";
 import "./cosmetic-profile.css";
 import "./shop-view.css";
+import "./community.css";
+import "./appearance.css";
+import "./memory-game.css";
+import "./home-scenes.css";
+import { memoryPage, bindMemory } from "./memory-game.js";
+import { appearancePage, setAppearance } from "./appearance.js";
+import { bindPromo, promoForm } from "./web-promos.js";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
 import { renderShopPage, renderShopResults, STORE_CATEGORIES } from "./shop-view.js";
 import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscordActivity, clearActivitySession } from "./discord-activity.js";
 
 const svg = (name, size = 22) => {
   const shapes = {
+    games: '<rect x="3" y="7" width="18" height="12" rx="4"/><path d="M6 13h6m-3-3v6m6-4h.01m3 3h.01"/>',
+    inventory: '<path d="M3 8l9-5 9 5-9 5zM3 8v9l9 5 9-5V8M12 13v9"/>',
+    cosmetics: '<path d="M4 16l9-9 4 4-9 9H4zM15 5l2-2 4 4-2 2M4 4v4M2 6h4"/>',
+    shop: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10q2 4 5 0 2 4 4 0 2 4 4 0 3 4 5 0M9 20v-6h6v6"/>',
+    quests: '<path d="M9 5H5v16h14V5h-4M9 3h6v4H9zM8 13l3 3 5-6"/>',
+    promos: '<path d="M3 7h18v4a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4zM15 8v2m0 3v2"/>',
+    history: '<path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v6l4 2"/>',
     bird: '<path d="M16 7h.01M7 17c3-1 5-4 5-8 2 3 5 3 8 2-2 3-5 5-9 6l-4 3 1-4-4-3c3 0 5-2 6-5"/>',
     home: '<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -21,18 +35,23 @@ const sections = [
   { id: "home", label: "Главная", icon: "home" },
   { id: "profile", label: "Профиль", icon: "user" },
   { id: "achievements", label: "Награды", icon: "trophy" },
-  { id: "inventory", label: "Коллекция", icon: "spark" },
-  { id: "cosmetics", label: "Косметика", icon: "spark" },
-  { id: "shop", label: "Магазин", icon: "spark" },
-  { id: "quests", label: "Задания", icon: "trophy" },
-  { id: "promos", label: "Промокоды", icon: "spark" },
-  { id: "history", label: "История", icon: "spark" },
+  { id: "inventory", label: "Коллекция", icon: "inventory" },
+  { id: "cosmetics", label: "Косметика", icon: "cosmetics" },
+  { id: "shop", label: "Магазин", icon: "shop" },
+  { id: "quests", label: "Задания", icon: "quests" },
+  { id: "admin", label: "Администрация", icon: "quests" },
+  { id: "promos", label: "Промокоды", icon: "promos" },
+  { id: "games", label: "Мини-игры", icon: "games" },
+  { id: "appearance", label: "Оформление", icon: "cosmetics" },
+  { id: "history", label: "История", icon: "history" },
 ];
 
 const root = document.getElementById("app");
 let current = "home";
 let session = null;
 let refreshTimer = null;
+let profileAttempts = 0;
+const checkDelay = attempt => document.hidden ? 15000 : Math.min(8000, 1200 * 2 ** Math.min(attempt, 3));
 let activityState = isDiscordActivity ? "connecting" : "browser";
 let activityError = "";
 let equipPending = false;
@@ -64,8 +83,8 @@ async function loadSession() {
   if (refreshTimer) clearTimeout(refreshTimer);
   refreshTimer = null;
   if (session?.sync === "pending") {
-    refreshTimer = setTimeout(() => { void loadSession(); }, 15000);
-  }
+    refreshTimer = setTimeout(() => { void loadSession(); }, checkDelay(profileAttempts++));
+  } else profileAttempts = 0;
 }
 
 async function handleEquip(itemId) {
@@ -91,8 +110,9 @@ async function handleEquip(itemId) {
     equipFeedback = "Запрос принят. Бот проверяет предмет и применяет оформление…";
     render();
     const deadline = Date.now() + 110000;
+    let statusAttempt = 0;
     while (Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, checkDelay(statusAttempt++)));
       const statusResponse = await fetch(activityApiPath("/api/equip?id=" + encodeURIComponent(payload.id)), {
         headers: { "Accept": "application/json", ...activityAuthHeaders() },
         credentials: isDiscordActivity ? "omit" : "same-origin", cache: "no-store",
@@ -149,8 +169,9 @@ async function handlePurchase(itemId, price) {
     purchaseFeedback = "Бот проверяет баланс и оформляет покупку…";
     render();
     const deadline = Date.now() + 110000;
+    let statusAttempt = 0;
     while (Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve,3000));
+      await new Promise(resolve => setTimeout(resolve, checkDelay(statusAttempt++)));
       const check = await fetch(activityApiPath("/api/purchase?id="+encodeURIComponent(data.id)),{
         headers:{Accept:"application/json",...activityAuthHeaders()},
         credentials:isDiscordActivity?"omit":"same-origin",cache:"no-store",
@@ -187,12 +208,12 @@ if (!session?.profile) return '<div class="profile-card"><div class="profile-ava
   return renderCosmeticProfile(session);
 }
 
-function syncPage(title, description, body) {
+function syncPage(title, description, renderBody) {
   const heading = '<section class="heading"><span class="eyebrow">ДАННЫЕ ИЗ DISCORD</span><h1>' + safe(title) + '</h1><p>' + safe(description) + '</p></section>';
   if (isDiscordActivity && activityState !== "ready") return heading + '<div class="empty"><h3>Подключаем Discord</h3><p>' + safe(activityError || "Проверяем учётную запись…") + '</p></div>';
   if (!session?.identity) return heading + '<div class="empty"><h3>Войди через Discord</h3><p>Нужна авторизация для просмотра своих данных.</p><a class="primary login-button" href="/api/auth/login">Войти через Discord</a></div>';
   if (!session.profile) return heading + '<div class="empty"><h3>Ожидается соединение с ботом</h3><p>Профильное API временно недоступно или ещё не подключено.</p></div>';
-  return heading + body;
+  return heading + renderBody();
 }
 
 function itemCards(items, empty = "Здесь пока ничего нет.") {
@@ -207,21 +228,23 @@ function itemCards(items, empty = "Здесь пока ничего нет.") {
 
 function extendedContent() {
   const p = session?.profile;
-  if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", renderCosmeticsGallery(session));
-  if (current === "shop") return syncPage("Магазин", "Твой стиль — в одном месте.", renderShopPage(p, shopFilters));
+  if (current === "inventory" || current === "cosmetics") return syncPage("Моя коллекция", "Все предметы и оформление из Discord.", () => renderCosmeticsGallery(session));
+  if (current === "shop") return syncPage("Магазин", "Твой стиль — в одном месте.", () => renderShopPage(p, shopFilters));
   if (current === "quests") return syncPage("Ежедневные задания", "Текущий прогресс заданий из Discord.",
-    p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
+    () => p?.quests?.length ? '<div class="feature-grid">' + p.quests.map(q =>
       '<div class="feature"><strong>' + safe(q.name) + '</strong><small>' + safe(q.description) +
       '</small><span class="tag">' + num(q.progress) + '/' + num(q.target) +
       ' · ' + (q.completed ? 'Выполнено' : 'В процессе') +
       ' · +' + num(q.reward) + ' 🪙</span></div>').join("") + '</div>' :
       '<div class="empty"><h3>Пока нет заданий</h3></div>');
-  if (current === "promos") return syncPage("Мои промокоды", "Показываем только уже использованные тобой промокоды. Активируй новые через /promo в Discord.",
-    p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
+  if (current === "admin") return syncPage("Администрация", "Создание промокодов сообщества.",
+    () => p.canManagePromos ? promoForm("create") : "<p>Нет доступа.</p>");
+  if (current === "promos") return syncPage("Промокоды", "Введи код сообщества, чтобы получить монеты.",
+    () => promoForm("redeem") + (p?.redeemedPromos?.length ? '<div class="feature-grid">' + p.redeemedPromos.map(x =>
       '<div class="feature"><strong>' + safe(x.code) + '</strong><small>Промокод активирован</small></div>').join("") +
-      '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>');
+      '</div>' : '<div class="empty"><h3>Использованных промокодов пока нет</h3><p>Доступные коды публикуются администрацией Discord-сервера.</p></div>'));
   if (current === "history") return syncPage("История монет", "Твои последние операции. Источник — база Discord-бота.",
-    p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
+    () => p?.transactions?.length ? '<div class="feature-grid">' + p.transactions.map(t =>
       '<div class="feature"><strong>' + (t.amount >= 0 ? '+' : '') + num(t.amount) +
       ' 🪙</strong><small>' + safe(t.details || t.kind) + '</small><span class="tag">' +
       safe(t.kind) + '</span></div>').join("") + '</div>' :
@@ -230,7 +253,9 @@ function extendedContent() {
 }
 
 function content() {
-  if (["inventory", "cosmetics", "shop", "quests", "promos", "history"].includes(current)) return extendedContent();
+  if (current === "games") return memoryPage();
+  if (current === "appearance") return appearancePage();
+  if (["inventory", "cosmetics", "shop", "quests", "promos", "admin", "history"].includes(current)) return extendedContent();
   if (current === "profile") return profileContent();
   if (current === "achievements") {
     const heading = '<section class="heading"><span class="eyebrow">КОЛЛЕКЦИЯ</span><h1>Твои <em>награды</em></h1><p>Особенные моменты заслуживают признания.</p></section>';
@@ -245,11 +270,104 @@ function content() {
       safe(a.rarity) + '</span></div>'
     ).join("") + '</div>';
   }
-  return '<section class="hero"><div class="halo"></div><span class="eyebrow">WELCOME TO YOUR SPACE</span><div class="hero-icon">' + svg("bird", 54) + '</div><h1>ДУХ<br><em>СВОБОДЫ</em></h1><p>Одно сообщество. Тысячи возможностей.<br>Твоя история начинается здесь.</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 20) + '</button><span class="hero-foot">✦ MADE FOR THE COMMUNITY ✦</span></section><div class="section-title"><h2>Исследуй мир</h2><span>01 / 03</span></div><div class="feature-grid"><button class="feature" data-go="profile"><span class="feature-icon purple">' + svg("user", 29) + '</span><strong>Мой профиль</strong><small>Твой уровень, опыт и стиль</small><span class="feature-next">' + svg("arrow", 19) + '</span></button><button class="feature" data-go="achievements"><span class="feature-icon blue">' + svg("trophy", 29) + '</span><strong>Достижения</strong><small>Коллекция твоих побед</small><span class="feature-next">' + svg("arrow", 19) + '</span></button></div>';
+  return '<section class="hero"><div class="hero-copy"><h1>Дух <em>Свободы</em></h1><p>Личный кабинет сообщества HeradeLegend</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 18) + '</button></div></section>' +
+    '<button class="home-profile" data-go="profile"><span class="home-profile-icon">' + svg("user",26) + '</span><span><strong>' +
+    safe(session?.identity?.displayName || "Мой профиль") + '</strong><small>' +
+    (session?.identity ? "Участник сообщества" : "Войти через Discord") + '</small></span>' + svg("arrow",18) + '</button>' +
+    '<section class="home-links"><h2>Разделы сообщества</h2><div class="feature-grid">' +
+    sections.filter(section => ["achievements","inventory","shop","games"].includes(section.id)).map(section =>
+      '<button type="button" class="feature" data-go="' + section.id + '"><span class="feature-icon">' +
+      svg(section.icon, 25) + '</span><strong>' + section.label + '</strong><span class="feature-next">' + svg("arrow", 18) + '</span></button>'
+    ).join("") + '</div></section>';
 }
 
+function navigation() {
+  return '<span class="nav-indicator" aria-hidden="true"></span>' + sections.map(section =>
+    '<button class="nav-link" type="button" data-go="' + section.id + '">' +
+    svg(section.icon, 20) + '<span>' + section.label + '</span></button>'
+  ).join("");
+}
+
+const avatarMark = '<span class="brand-mark bot-avatar"><span aria-hidden="true">ДС</span><img src="/bot-avatar.webp" alt="" width="44" height="44"></span>';
+root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand">' + avatarMark + '<div><strong>Дух Свободы</strong><small>HeradeLegend</small></div></div>' +
+  '<nav class="section-nav" aria-label="Разделы">' + navigation() + '</nav></aside>' +
+  '<div class="workspace"><header class="topbar">' + avatarMark + '<strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
+  '<main id="content" tabindex="-1"></main><footer>Дух Свободы © 2026</footer></div>' +
+  '<nav class="bottom-nav section-nav" aria-label="Мобильная навигация">' + navigation() + '</nav></div>';
+
+for (const img of root.querySelectorAll(".bot-avatar img")) {
+  img.addEventListener("error", () => { img.hidden = true; });
+  if (img.complete && !img.naturalWidth) img.hidden = true;
+}
+root.addEventListener("change", event => {
+  if (event.target.matches("input[data-appearance]")) setAppearance(event.target.name,event.target.value);
+});
+const panel = root.querySelector("#content");
+const menus = [...root.querySelectorAll(".section-nav")];
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let entrance;
+
+function positionIndicator(menu) {
+  const active = menu.querySelector('[aria-current="page"]');
+  if (!active || !menu.clientWidth) return;
+  const indicator = menu.querySelector(".nav-indicator");
+  indicator.style.width = active.offsetWidth + "px";
+  indicator.style.height = active.offsetHeight + "px";
+  indicator.style.transform = "translate(" + active.offsetLeft + "px," + active.offsetTop + "px)";
+}
+
+function updateNavigation() {
+  for (const menu of menus) {
+    for (const button of menu.querySelectorAll("[data-go]")) {
+      if (button.dataset.go === current) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    }
+    positionIndicator(menu);
+  }
+  root.querySelector(".section-name").textContent = sections.find(section => section.id === current).label;
+}
+
+const menuObserver = new ResizeObserver(entries => {
+  for (const entry of entries) positionIndicator(entry.target);
+});
+for (const menu of menus) menuObserver.observe(menu);
+
+root.addEventListener("click", event => {
+  const button = event.target.closest("button[data-go]");
+  if (!button || current === button.dataset.go) return;
+  const fromContent = panel.contains(button);
+  current = button.dataset.go;
+  updateNavigation();
+  render();
+  if (fromContent) panel.focus({ preventScroll: true });
+  window.scrollTo({top: 0, behavior: "instant"});
+  const mobileMenu = root.querySelector(".bottom-nav");
+  if (mobileMenu.clientWidth) mobileMenu.querySelector('[aria-current="page"]').scrollIntoView({
+    block: "nearest", inline: "nearest", behavior: reducedMotion.matches ? "instant" : "smooth"
+  });
+  entrance?.cancel();
+  if (!reducedMotion.matches) entrance = panel.animate([
+    {opacity: .75, transform: "translateY(5px)"}, {opacity: 1, transform: "none"}
+  ], {duration: 190, easing: "ease-out"});
+});
+
+updateNavigation();
+let promoBinding;
 function render() {
-  root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">' + svg("bird", 25) + '</div><div><strong>ДУХ СВОБОДЫ</strong><small>COMMUNITY APP</small></div></div><nav aria-label="Разделы">' + sections.map(x => '<button data-go="' + x.id + '" class="nav-link ' + (current === x.id ? "active" : "") + '" aria-current="' + (current === x.id ? "page" : "false") + '">' + svg(x.icon, 21) + '<span>' + x.label + '</span></button>').join("") + '</nav><div class="side-foot"><span class="status-dot"></span><span>Ранняя версия приложения</span></div></aside><div class="workspace"><header class="topbar"><div class="topbrand"><span>' + svg("bird", 21) + '</span> ДУХ СВОБОДЫ</div><span class="top-status"><span class="status-dot"></span> ' + safe(syncStateLabel()) + '</span></header><main id="content">' + (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') + (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content() + '</main><footer>ДУХ СВОБОДЫ © 2026 <span>СОЗДАНО ДЛЯ СООБЩЕСТВА</span></footer></div><nav class="bottom-nav" aria-label="Мобильная навигация">' + sections.map(x => '<button data-go="' + x.id + '" class="' + (current === x.id ? "active" : "") + '">' + svg(x.icon, 22) + '<span>' + x.label + '</span></button>').join("") + '</nav></div>';
+  promoBinding?.abort();
+  if (current === "admin" && !session?.profile?.canManagePromos) current = "promos";
+  for (const link of root.querySelectorAll('[data-go="admin"]')) link.hidden = !session?.profile?.canManagePromos;
+  updateNavigation();
+  root.querySelector("#status-label").textContent = syncStateLabel();
+  panel.innerHTML = (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') +
+    (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content();
+  const board = panel.querySelector(".memory-game");
+  if (board) bindMemory(board);
+  const form = panel.querySelector("[data-promo]");
+  if (form) {
+    promoBinding = new AbortController();
+    bindPromo(form,promoBinding.signal,loadSession);
+  }
   const attachEquipHandlers = (scope = root) => {
     for (const button of scope.querySelectorAll("[data-equip-id]")) {
       button.disabled = equipPending;
@@ -327,11 +445,7 @@ function render() {
       logout.textContent = "Ошибка выхода. Повтори попытку.";
     }
   });
-  for (const button of root.querySelectorAll("[data-go]")) button.addEventListener("click", () => {
-    current = button.dataset.go;
-    render();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+
 }
 async function bootstrap() {
   if (isDiscordActivity) {
