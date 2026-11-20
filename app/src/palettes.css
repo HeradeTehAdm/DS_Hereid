@@ -44,7 +44,7 @@
 }
 :is([data-accent="aurora"],[data-accent="sunset"]) :is(.sidebar,.bottom-nav.section-nav) {background:var(--nav-wash)}
 :is([data-accent="aurora"],[data-accent="sunset"]) .topbar {
-  position:relative;isolation:isolate;overflow:hidden;background:var(--nav-wash);border-color:var(--line);
+  isolation:isolate;overflow:hidden;background:var(--nav-wash);border-color:var(--line);
 }
 :is([data-accent="aurora"],[data-accent="sunset"]) .topbar::before {
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;

@@ -9,7 +9,7 @@ assert.equal(configuredAppUrl("http://unsafe.example.com"), null);
 for (const value of ["http://spirit.example.com", "javascript:alert(1)", "https://user:pass@example.com", "https://localhost", "https://example.com/#secret"]) {
   assert.equal(appUrl(value), null, value);
 }
-assert.equal(inviteEmbed("HERADE HOUSE").data.title, "🕊️ ДУХ СВОБОДЫ • APP");
+assert.equal(inviteEmbed("HERADE HOUSE").data.title, "🕊️ Дух Свободы");
 const launchButton = inviteComponents()[0].components[0].toJSON();
 assert.equal(launchButton.custom_id, ACTIVITY_LAUNCH_ID);
 assert.equal(launchButton.url, undefined, "Activity launch must not send users to an external site.");
