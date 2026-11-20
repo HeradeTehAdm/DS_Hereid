@@ -21,7 +21,7 @@ function inviteEmbed(guildName) {
     .setColor(0x8b5cf6)
     .setTitle("🕊️ Дух Свободы")
     .setDescription("Это всё тот же „Дух Свободы“, теперь с новым интерфейсом прямо в Discord. Загляни в профиль, посмотри свой уровень и награды или подбери оформление под себя.\n\nДальше планируем добавить мини-игры, события, квесты и задания")
-    .setFooter({ text: "Herade House 2.0 • Дух Свободы Апп" });
+    .setFooter({ text: "Herade House 2.0 • Дух Свободы." });
 }
 
 const ACTIVITY_LAUNCH_ID = "spirit:launch";
