@@ -88,6 +88,22 @@ minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
   logger.info(`Connected to ${readyClient.guilds.cache.size} guild(s).`);
+  try {
+    const channel = await readyClient.channels.fetch("1572474768706375770");
+    const id = "1573220106354294785";
+    const read = () => channel.messages.fetch({message:id,force:true});
+    const before = await read();
+    const buttons = m => JSON.stringify(m.components.map(row=>row.toJSON()));
+    const metadata = m => { const data=m.embeds[0].toJSON(); delete data.description; return JSON.stringify(data); };
+    if (channel.guildId !== "1563229854030372864" || before.author.id !== readyClient.user.id ||
+        before.embeds.length !== 1 || !before.components.some(row=>row.components.some(b=>b.customId==="spirit:launch"))) throw new Error("Неверная карточка");
+    const original = metadata(before), controls = buttons(before);
+    const description = spiritApp.inviteEmbed(channel.guild.name).data.description;
+    if (before.embeds[0].description !== description) await before.edit({embeds:[{...before.embeds[0].toJSON(),description}]});
+    const after = await read();
+    if (after.embeds[0]?.description !== description || buttons(after)!==controls || metadata(after)!==original) throw new Error("Ошибка сверки");
+    logger.info("Карточка 1573220106354294785: текст и остальные поля проверены");
+  } catch(error) { logger.warn("Проверка карточки: " + (error.code || error.message)); }
   startAutomationScheduler(readyClient);
   for (const guild of readyClient.guilds.cache.values()) {
     try { if (promoCodes.seedDefaultPromos(guild.id)) logger.info(`Создан стартовый промокод для сервера ${guild.id}.`); } catch (error) { logger.error("Не удалось создать стартовый промокод.", error); }
