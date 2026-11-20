@@ -3,6 +3,8 @@ import "./cosmetic-profile.css";
 import "./shop-view.css";
 import "./community.css";
 import "./appearance.css";
+import "./memory-game.css";
+import { memoryPage, bindMemory } from "./memory-game.js";
 import { appearancePage, setAppearance } from "./appearance.js";
 import { bindPromo, promoForm } from "./web-promos.js";
 import { renderCosmeticProfile, renderCosmeticsGallery } from "./cosmetic-profile.js";
@@ -11,6 +13,7 @@ import { isDiscordActivity, activityApiPath, activityAuthHeaders, connectDiscord
 
 const svg = (name, size = 22) => {
   const shapes = {
+    games: '<rect x="3" y="7" width="18" height="12" rx="4"/><path d="M6 13h6m-3-3v6m6-4h.01m3 3h.01"/>',
     inventory: '<path d="M3 8l9-5 9 5-9 5zM3 8v9l9 5 9-5V8M12 13v9"/>',
     cosmetics: '<path d="M4 16l9-9 4 4-9 9H4zM15 5l2-2 4 4-2 2M4 4v4M2 6h4"/>',
     shop: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10q2 4 5 0 2 4 4 0 2 4 4 0 3 4 5 0M9 20v-6h6v6"/>',
@@ -37,6 +40,7 @@ const sections = [
   { id: "quests", label: "Задания", icon: "quests" },
   { id: "admin", label: "Администрация", icon: "quests" },
   { id: "promos", label: "Промокоды", icon: "promos" },
+  { id: "games", label: "Мини-игры", icon: "games" },
   { id: "appearance", label: "Оформление", icon: "cosmetics" },
   { id: "history", label: "История", icon: "history" },
 ];
@@ -248,6 +252,7 @@ function extendedContent() {
 }
 
 function content() {
+  if (current === "games") return memoryPage();
   if (current === "appearance") return appearancePage();
   if (["inventory", "cosmetics", "shop", "quests", "promos", "admin", "history"].includes(current)) return extendedContent();
   if (current === "profile") return profileContent();
@@ -266,7 +271,7 @@ function content() {
   }
   return '<section class="hero"><div class="hero-copy"><h1>Дух <em>Свободы</em></h1><p>Личный кабинет сообщества HeradeLegend</p><button class="primary" data-go="profile">Мой профиль ' + svg("arrow", 18) + '</button></div></section>' +
     '<section class="home-links"><h2>Разделы сообщества</h2><div class="feature-grid">' +
-    sections.filter(section => ["achievements","inventory","shop"].includes(section.id)).map(section =>
+    sections.filter(section => ["achievements","inventory","shop","games"].includes(section.id)).map(section =>
       '<button type="button" class="feature" data-go="' + section.id + '"><span class="feature-icon">' +
       svg(section.icon, 25) + '</span><strong>' + section.label + '</strong><span class="feature-next">' + svg("arrow", 18) + '</span></button>'
     ).join("") + '</div></section>';
@@ -352,6 +357,8 @@ function render() {
   root.querySelector("#status-label").textContent = syncStateLabel();
   panel.innerHTML = (equipFeedback ? '<div role="status" class="cos-toast">' + safe(equipFeedback) + '</div>' : '') +
     (purchaseFeedback ? '<div role="status" class="cos-toast">' + safe(purchaseFeedback) + '</div>' : '') + content();
+  const board = panel.querySelector(".memory-game");
+  if (board) bindMemory(board);
   const form = panel.querySelector("[data-promo]");
   if (form) {
     promoBinding = new AbortController();
