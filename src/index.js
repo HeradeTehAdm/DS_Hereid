@@ -91,21 +91,19 @@ client.once(Events.ClientReady, async (readyClient) => {
   try {
     const ch=await readyClient.channels.fetch("1572474768706375770");
     if(ch.guildId!=="1563229854030372864") throw Error("Неверный сервер");
-    const members=await ch.guild.members.search({query:"itsnikitinka",limit:100});
-    const exact=members.filter(m=>!m.user.bot && m.user.username==="itsnikitinka." && m.user.globalName==="ItsNikitinka");
-    if(exact.size!==1) throw Error("Точное имя не найдено");
-    const user=await readyClient.users.fetch(exact.first().id,{force:true});
-    if(user.username!=="itsnikitinka." || user.globalName!=="ItsNikitinka") throw Error("Имя не совпало");
+    const members=await ch.guild.members.fetch({time:15000}).catch(()=>null);
+    const matchUser=members?.find(m=>!m.user.bot && m.user.username==="itsnikitinka.");
+    const user=matchUser ? await readyClient.users.fetch(matchUser.id,{force:true}) : null;
     const match=m=>m.author.id===readyClient.user.id && m.embeds.length===1 && m.embeds[0].title==="🕊️ Дух Свободы" && m.embeds[0].footer?.text==="Herade House 2.0 • Дух Свободы Апп" && m.components.some(r=>r.components.some(b=>b.customId==="spirit:launch"));
     let m=await ch.messages.fetch({message:"1573221558556565525",force:true}).catch(e=>{if(e.code!==10008)throw e;return null});
     if(!m){const cards=(await ch.messages.fetch({limit:100})).filter(match);if(cards.size===1)m=cards.first();}
     if(!m || !match(m)) throw Error("Карточка не опознана");
-    const e=m.embeds[0].toJSON(), description=e.description+"\n\nРазработчик — <@"+user.id+">", footer="Herade House 2.0 • Дух Свободы.";
+    const e=m.embeds[0].toJSON(), description=user?.username==="itsnikitinka." ? e.description+"\n\nРазработчик — <@"+user.id+">" : e.description, footer="Herade House 2.0 • Дух Свободы.";
     const buttons=JSON.stringify(m.components.map(r=>r.toJSON()));
     await m.edit({embeds:[{...e,description,footer:{...e.footer,text:footer}}],allowedMentions:{parse:[]}});
     const v=await ch.messages.fetch({message:m.id,force:true});
     if(v.embeds[0]?.description!==description || v.embeds[0]?.footer?.text!==footer || JSON.stringify(v.components.map(r=>r.toJSON()))!==buttons) throw Error("Сверка не прошла");
-    logger.info("Разработчик подтверждён: "+user.username+" "+user.id+"; карточка сверена: "+m.id);
+    logger.info("Футер проверен; разработчик: "+(user?.username==="itsnikitinka." ? user.id : "не установлен")+"; карточка "+m.id);
   }catch(e){logger.warn("Упоминание разработчика: "+(e.code||e.message));}
   startAutomationScheduler(readyClient);
   for (const guild of readyClient.guilds.cache.values()) {
