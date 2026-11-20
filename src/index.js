@@ -92,10 +92,10 @@ client.once(Events.ClientReady, async (readyClient) => {
     const ch=await readyClient.channels.fetch("1572474768706375770");
     if(ch.guildId!=="1563229854030372864") throw Error("Неверный сервер");
     const members=await ch.guild.members.search({query:"itsnikitinka",limit:100});
-    const exact=members.filter(m=>!m.user.bot && m.user.username.toLowerCase()==="itsnikitinka");
+    const exact=members.filter(m=>!m.user.bot && m.user.username==="itsnikitinka." && m.user.globalName==="ItsNikitinka");
     if(exact.size!==1) throw Error("Точное имя не найдено");
     const user=await readyClient.users.fetch(exact.first().id,{force:true});
-    if(user.username.toLowerCase()!=="itsnikitinka") throw Error("Имя не совпало");
+    if(user.username!=="itsnikitinka." || user.globalName!=="ItsNikitinka") throw Error("Имя не совпало");
     const match=m=>m.author.id===readyClient.user.id && m.embeds.length===1 && m.embeds[0].title==="🕊️ Дух Свободы" && m.embeds[0].footer?.text==="Herade House 2.0 • Дух Свободы Апп" && m.components.some(r=>r.components.some(b=>b.customId==="spirit:launch"));
     let m=await ch.messages.fetch({message:"1573221558556565525",force:true}).catch(e=>{if(e.code!==10008)throw e;return null});
     if(!m){const cards=(await ch.messages.fetch({limit:100})).filter(match);if(cards.size===1)m=cards.first();}
