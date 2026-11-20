@@ -88,19 +88,6 @@ minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
   logger.info(`Connected to ${readyClient.guilds.cache.size} guild(s).`);
-  try {
-    const channel = await readyClient.channels.fetch("1572474768706375770");
-    const id = "1572546463362187336";
-    const message = await channel.messages.fetch({message:id,force:true});
-    if (message.author.id !== readyClient.user.id || message.embeds.length !== 1) throw new Error("Неверная карточка");
-    const description = spiritApp.inviteEmbed(channel.guild.name).data.description;
-    if (message.embeds[0].description !== description) {
-      await message.edit({embeds:[{...message.embeds[0].toJSON(),description}]});
-    }
-    const verified = await channel.messages.fetch({message:id,force:true});
-    if (verified.embeds[0]?.description !== description) throw new Error("Описание не совпало");
-    logger.info("Описание карточки 1572546463362187336 подтверждено");
-  } catch(error) { logger.warn("Не удалось проверить описание карточки: " + (error.code || error.name)); }
   startAutomationScheduler(readyClient);
   for (const guild of readyClient.guilds.cache.values()) {
     try { if (promoCodes.seedDefaultPromos(guild.id)) logger.info(`Создан стартовый промокод для сервера ${guild.id}.`); } catch (error) { logger.error("Не удалось создать стартовый промокод.", error); }
