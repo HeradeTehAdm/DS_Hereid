@@ -288,10 +288,12 @@ function navigation() {
   ).join("");
 }
 
-const avatarMark = '<span class="brand-mark bot-avatar"><span aria-hidden="true">ДС</span><img src="/bot-avatar.webp" alt="" width="44" height="44"></span>';
-root.innerHTML = '<div class="shell"><aside class="sidebar"><div class="brand">' + avatarMark + '<div><strong>Дух Свободы</strong><small>HeradeLegend</small></div></div>' +
+const avatarUrl = activityApiPath("/bot-avatar.webp");
+const avatarMark = '<span class="brand-mark bot-avatar" role="img" aria-label="Аватар бота Дух Свободы"><span aria-hidden="true">ДС</span><img src="' + avatarUrl + '" alt="" width="44" height="44"></span>';
+const brand = '<div class="brand">' + avatarMark + '<div><strong>Дух Свободы</strong><small>Herade House 2.0</small></div></div>';
+root.innerHTML = '<div class="shell"><aside class="sidebar">' + brand +
   '<nav class="section-nav" aria-label="Разделы">' + navigation() + '</nav></aside>' +
-  '<div class="workspace"><header class="topbar">' + avatarMark + '<strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
+  '<div class="workspace"><header class="topbar">' + brand + '<strong class="section-name"></strong><span class="top-status"><span class="status-dot"></span><span id="status-label"></span></span></header>' +
   '<main id="content" tabindex="-1"></main><footer>Дух Свободы © 2026</footer></div>' +
   '<nav class="bottom-nav section-nav" aria-label="Мобильная навигация">' + navigation() + '</nav></div>';
 

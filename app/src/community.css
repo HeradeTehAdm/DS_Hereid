@@ -8,7 +8,10 @@
   background: var(--night);
 }
 .shell {background: radial-gradient(ellipse at 70% -10%, #21354a, transparent 52%), var(--night)}
-.sidebar {width:242px; flex-shrink:0; gap:36px; padding:30px 16px; background:#0e1724; border-color:#253246; overflow-y:auto}
+.sidebar {width:242px; flex-shrink:0; gap:36px; padding:30px 16px; background:#0e1724; border-color:#253246}
+.sidebar .brand {flex:none}
+.sidebar .section-nav {min-height:0; overflow-y:auto; overscroll-behavior-y:contain; padding:4px}
+.sidebar .nav-link {flex:none}
 .brand {padding:0 7px}
 .brand strong {font-size:17px; letter-spacing:-.035em}
 .brand small {color:#a7b9c8; letter-spacing:.075em}
@@ -19,7 +22,7 @@
 .section-nav .nav-link:active {background:#aacee524}
 .section-nav .nav-link[aria-current="page"] {color:#c8ffe9}
 .nav-indicator {position:absolute; pointer-events:none; left:0; top:0; background:#1d3839; border:1px solid #39615d; border-radius:13px; transition:transform 240ms cubic-bezier(.2,.8,.2,1),width 180ms,height 180ms}
-.topbar {background:transparent; border-color:#35435880; gap:18px}
+.topbar {position:relative; background:transparent; border-color:#35435880; gap:18px}
 .section-name {font-size:16px; letter-spacing:-.025em}
 .top-status {color:#c0cedb; letter-spacing:.09em}
 main {max-width:1380px; padding-top:36px}
@@ -60,7 +63,7 @@ button.feature:hover {background:#1c3040; border-color:#73988e}
 }
 .bot-avatar {position:relative; overflow:hidden; flex:none; font-weight:800}
 .bot-avatar img {position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-.topbar .bot-avatar {display:none}
+.topbar .brand {display:none}
 .section-nav [hidden] {display:none}
 .promo-form {display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); align-items:end; gap:16px; margin:20px 0; padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface)}
 .promo-form label {display:grid; gap:8px; font-size:14px}
@@ -69,7 +72,12 @@ button.feature:hover {background:#1c3040; border-color:#73988e}
 .promo-form button:disabled {opacity:.65}
 .promo-form [role=status] {grid-column:1/-1; margin:0}
 @media(max-width:800px) {
-  .topbar .bot-avatar {display:grid; width:32px; height:32px; border-radius:10px}
-  .topbar .section-name {margin-right:auto}
-  .topbar {gap:8px}
+  .topbar .brand {display:flex; flex:none; padding:0; gap:9px}
+  .topbar .bot-avatar {width:38px; height:38px; border-radius:10px}
+  .topbar .brand strong {font-size:15px}
+  .topbar .brand small {font-size:10px; letter-spacing:.04em}
+  .topbar .section-name {position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%)}
+  .topbar .top-status {min-width:0; text-align:right; justify-content:flex-end}
+  .topbar .status-dot {flex:none}
+  .topbar {position:sticky; top:0; z-index:9; gap:8px; background:var(--sidebar)}
 }
