@@ -88,20 +88,6 @@ minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
   logger.info(`Connected to ${readyClient.guilds.cache.size} guild(s).`);
-  try {
-    const channel=await readyClient.channels.fetch("1572474768706375770");
-    const read=()=>channel.messages.fetch({message:"1573220106354294785",force:true});
-    const recent=await channel.messages.fetch({limit:30});
-    logger.info("Карточки запуска: "+recent.filter(m=>m.author.id===readyClient.user.id && m.components.some(row=>row.components.some(b=>b.customId==="spirit:launch"))).map(m=>m.id).join(", "));
-    const m=await read(); logger.info("Исходная карточка найдена");
-    if(channel.guildId!=="1563229854030372864" || m.author.id!==readyClient.user.id || m.embeds.length!==1 || !m.components.some(row=>row.components.some(b=>b.customId==="spirit:launch"))) throw Error("Неверная карточка");
-    const template=spiritApp.inviteEmbed(channel.guild.name).data;
-    const embed=m.embeds[0].toJSON(), controls=JSON.stringify(m.components.map(row=>row.toJSON()));
-    await m.edit({embeds:[{...embed,description:template.description,footer:{...embed.footer,text:template.footer.text}}]});
-    const checked=await read();
-    if(checked.embeds[0]?.description!==template.description || checked.embeds[0]?.footer?.text!==template.footer.text || checked.embeds[0]?.title!==embed.title || JSON.stringify(checked.components.map(row=>row.toJSON()))!==controls) throw Error("Ошибка сверки");
-    logger.info("Карточка 1573220106354294785: описание, футер и кнопка сверены");
-  } catch(error){logger.warn("Ошибка проверки карточки: "+(error.code||error.name));}
   startAutomationScheduler(readyClient);
   for (const guild of readyClient.guilds.cache.values()) {
     try { if (promoCodes.seedDefaultPromos(guild.id)) logger.info(`Создан стартовый промокод для сервера ${guild.id}.`); } catch (error) { logger.error("Не удалось создать стартовый промокод.", error); }
