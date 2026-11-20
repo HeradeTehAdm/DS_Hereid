@@ -88,21 +88,6 @@ minecraftApi.ready?.catch((error) => logger.error("Herade Security API failed to
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info(`Logged in as ${readyClient.user.tag} (${readyClient.user.id})`);
   logger.info(`Connected to ${readyClient.guilds.cache.size} guild(s).`);
-  try {
-    const channel=await readyClient.channels.fetch("1572474768706375770");
-    const read=()=>channel.messages.fetch({message:"1573221558556565525",force:true});
-    const m=await read(), e=m.embeds[0], buttons=x=>JSON.stringify(x.components.map(r=>r.toJSON()));
-    const checks={сервер:channel.guildId==="1563229854030372864",автор:m.author.id===readyClient.user.id,заголовок:m.embeds.length===1 && /^(?:🕊️?\s*)?Дух Свободы$/iu.test(e?.title||""),абзац:/Хочется сыграть\? Открой „Найди пару“/.test(e?.description||""),футер:/^Herade House 2\.0\s*•\s*Spirit of Freedom$/i.test(e?.footer?.text||""),кнопка:m.components.some(r=>r.components.some(b=>b.customId==="spirit:launch" && b.label==="🚀 Открыть в Discord"))};
-    const failed=Object.keys(checks).filter(k=>!checks[k]);
-    if(failed.length) logger.warn("Карточка: расхождение "+failed.join(", ")+"; заголовок "+e?.title+"; футер "+e?.footer?.text+"; описание "+e?.description);
-    else {
-      const target=spiritApp.inviteEmbed(channel.guild.name).data, original=e.toJSON(), controls=buttons(m);
-      await m.edit({embeds:[{...original,description:target.description,footer:{...original.footer,text:target.footer.text}}]});
-      const after=await read();
-      if(after.embeds[0]?.description!==target.description || after.embeds[0]?.footer?.text!==target.footer.text || after.embeds[0]?.title!==original.title || buttons(after)!==controls) throw Error("Ошибка сверки");
-      logger.info("Карточка 1573221558556565525: описание, футер и кнопка подтверждены");
-    }
-  } catch(error){logger.warn("Ошибка проверки карточки: "+(error.code||error.name));}
   startAutomationScheduler(readyClient);
   for (const guild of readyClient.guilds.cache.values()) {
     try { if (promoCodes.seedDefaultPromos(guild.id)) logger.info(`Создан стартовый промокод для сервера ${guild.id}.`); } catch (error) { logger.error("Не удалось создать стартовый промокод.", error); }
